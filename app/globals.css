@@ -1,0 +1,356 @@
+@import "tailwindcss";
+
+@theme {
+  --spacing: 0.25rem;
+  
+  /* ── Light Background System ── */
+  --color-bg-base:       oklch(0.972 0.004 240);  /* blanc légèrement bleuté — moins gris */
+  --color-bg-surface:    oklch(1.0 0 0);           /* #ffffff pur — sidebar, panels */
+  --color-bg-elevated:   oklch(0.982 0 0);         /* quasi-blanc — cards, inputs */
+  --color-bg-hover:      oklch(0.955 0.003 240);   /* hover states */
+  
+  /* ── Primary: Orange vif (identité Clawdbot) ── */
+  --color-primary:       oklch(0.70 0.20 46);     /* orange brand — vif */
+  --color-primary-dark:  oklch(0.58 0.22 44);
+  --color-primary-glow:  oklch(0.70 0.20 46 / 0.22);
+  --color-primary-muted: oklch(0.70 0.20 46 / 0.10);
+  --color-primary-light: oklch(0.97 0.035 45);    /* bg teinté orange léger */
+  
+  /* ── Text ── */
+  --color-text-primary:   oklch(0.12 0 0);
+  --color-text-secondary: oklch(0.38 0.005 240);
+  --color-text-muted:     oklch(0.55 0.005 240);
+  
+  /* ── Borders ── */
+  --color-border:        oklch(0.90 0 0 / 0.8);
+  --color-border-subtle: oklch(0.94 0 0);
+  
+  /* ── Status Colors — vifs ── */
+  --color-success:    oklch(0.60 0.22 150);   /* vert vif */
+  --color-warning:    oklch(0.72 0.20 78);    /* ambre vif */
+  --color-error:      oklch(0.60 0.26 25);    /* rouge vif */
+  --color-info:       oklch(0.58 0.20 250);   /* bleu vif */
+  --color-success-light: oklch(0.95 0.06 150);
+  --color-error-light:   oklch(0.96 0.06 25);
+  
+  /* ── Radius System ── */
+  --radius-xs:   0.25rem;
+  --radius-sm:   0.375rem;
+  --radius-md:   0.625rem;
+  --radius-lg:   0.875rem;
+  --radius-xl:   1.25rem;
+  --radius-2xl:  1.75rem;
+  --radius-full: 9999px;
+  
+  /* ── Shadows — Y only, pas de diffusion latérale ── */
+  --shadow-sm:   0 3px 8px -2px rgba(0,0,0,0.12);
+  --shadow-md:   0 6px 18px -3px rgba(0,0,0,0.13);
+  --shadow-lg:   0 12px 36px -6px rgba(0,0,0,0.15);
+  --shadow-glow: 0 8px 24px -4px oklch(0.70 0.20 46 / 0.35);
+  
+  /* ── Transitions ── */
+  --transition-fast:    150ms ease;
+  --transition-default: 250ms ease;
+  --transition-slow:    400ms ease;
+  
+  /* ── Legacy aliases (for backward compat) ── */
+  --color-background:           var(--color-bg-base);
+  --color-background-secondary: var(--color-bg-elevated);
+  --color-foreground:           var(--color-text-primary);
+  --color-foreground-secondary: var(--color-text-secondary);
+  --color-foreground-muted:     var(--color-text-muted);
+}
+
+/* CSS Variable Aliases - for var(--xxx) usage in components */
+:root {
+  --primary:             var(--color-primary);
+  --primary-dark:        var(--color-primary-dark);
+  --primary-light:       var(--color-primary-light);
+  --background:          var(--color-bg-base);
+  --background-secondary: var(--color-bg-elevated);
+  --foreground:          var(--color-text-primary);
+  --foreground-secondary: var(--color-text-secondary);
+  --foreground-muted:    var(--color-text-muted);
+  --border:              var(--color-border);
+  --success:             var(--color-success);
+  --success-light:       var(--color-success-light);
+  --error:               var(--color-error);
+  --error-light:         var(--color-error-light);
+  --muted:               var(--color-bg-hover);
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  --default-transition-duration: 0.25s;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif), 'Source Serif 4', Georgia, serif;
+  font-feature-settings: 'kern' 1, 'liga' 1;
+}
+
+/* Clickable elements - pointer cursor */
+button, a, [role="button"], .cursor-pointer {
+  cursor: pointer;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0.88 0 0);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.80 0 0);
+}
+
+/* ── Animations ──────────────────────────────────────────────── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 200ms ease forwards;
+}
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in {
+  animation: slide-in-left 250ms ease forwards;
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+@keyframes radialPulse {
+  0%   { transform: scale(0);   opacity: 0.5; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* ── Sidebar ──────────────────────────────────────────────────── */
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  transition: background var(--transition-default), color var(--transition-default);
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.sidebar-link:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.sidebar-link.active {
+  background: oklch(0.70 0.20 46 / 0.10);
+  color: var(--color-primary);
+  border-radius: 8px;
+}
+
+/* Radial pulse animation on click */
+.radial-pulse {
+  position: relative;
+  overflow: hidden;
+}
+
+.radial-pulse::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.4) 30%, rgba(255, 255, 255, 0) 65%);
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.radial-pulse:active::after {
+  animation: radialPulse 0.4s ease-out;
+}
+
+/* ── Cards ─────────────────────────────────────────────────────── */
+.card {
+  background: var(--color-bg-surface);
+  border-radius: 1rem;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Buttons ────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 0.625rem;
+  padding: 0.5rem 1rem;
+  transition: background var(--transition-default), opacity var(--transition-default), box-shadow var(--transition-fast);
+  cursor: pointer;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-dark);
+  box-shadow: var(--shadow-glow);
+}
+
+.btn-outline {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.btn-outline:hover {
+  background: var(--color-bg-hover);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Badges ─────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+}
+
+.badge-success {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+/* ── Message bubbles ─────────────────────────────────────────────── */
+.msg-agent {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0 1rem 1rem 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.msg-user {
+  background: oklch(0.68 0.17 46 / 0.10);
+  border: 1px solid oklch(0.68 0.17 46 / 0.15);
+  color: var(--color-text-primary);
+  border-radius: 1rem 0 1rem 1rem;
+}
+
+/* Agent label above message in group sessions */
+.msg-agent-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Group header participants */
+.participant-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  opacity: 0.7;
+  display: inline-block;
+}
+
+/* ── Utility ─────────────────────────────────────────────────────── */
+.section-spacing {
+  padding: 1.5rem;
+}
+
+.text-title {
+  font-size: 1.25rem;
+  font-weight: 300;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.text-subtitle {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  margin-top: 0.25rem;
+}
+
+.text-small {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.gradient-primary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+}
+
+/* Selection */
+::selection {
+  background: oklch(0.68 0.17 46 / 0.2);
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

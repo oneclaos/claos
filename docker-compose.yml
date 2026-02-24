@@ -1,0 +1,67 @@
+services:
+  claos:
+    build: .
+    container_name: claos
+    restart: unless-stopped
+    # Run as the current user to access /home files.
+    # Set UID/GID in .env.local (run `id -u` and `id -g` to get your values).
+    user: "${UID:-1000}:${GID:-1000}"
+    # Use host network to access Clawdbot on 127.0.0.1
+    network_mode: host
+    environment:
+      - NODE_ENV=production
+      - DATA_DIR=/data
+      - STRICT_SESSION_BINDING=false
+      - PORT=3006
+      - HOSTNAME=127.0.0.1
+    env_file:
+      - .env.local
+    volumes:
+      # Full /home access for file manager (rw for edit/delete)
+      - /home:/home:rw
+      # Persistent data directory (sessions, groups, audit logs)
+      - claos-data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3006/api/auth', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp:mode=1777,size=100M
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Backup service - runs daily at 3 AM
+  backup:
+    image: amazon/aws-cli:latest
+    container_name: claos-backup
+    restart: "no"
+    profiles:
+      - backup  # Only starts with: docker-compose --profile backup up backup
+    environment:
+      - DATA_DIR=/data
+      - BACKUP_BUCKET=${BACKUP_BUCKET:-}
+      - BACKUP_ENDPOINT=${BACKUP_ENDPOINT:-}
+      - BACKUP_REGION=${BACKUP_REGION:-auto}
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-30}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+    volumes:
+      - claos-data:/data:ro
+      - ./scripts:/scripts:ro
+    entrypoint: ["/bin/bash", "/scripts/backup.sh"]
+
+volumes:
+  claos-data:
+    driver: local

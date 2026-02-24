@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+# =============================================================================
+# Claos Dashboard — Interactive Setup Script
+# Usage: ./install.sh
+# =============================================================================
+set -euo pipefail
+
+BOLD="\033[1m"
+GREEN="\033[0;32m"
+CYAN="\033[0;36m"
+YELLOW="\033[0;33m"
+RED="\033[0;31m"
+RESET="\033[0m"
+
+info()    { echo -e "${CYAN}[INFO]${RESET}  $*"; }
+success() { echo -e "${GREEN}[OK]${RESET}    $*"; }
+warn()    { echo -e "${YELLOW}[WARN]${RESET}  $*"; }
+error()   { echo -e "${RED}[ERROR]${RESET} $*" >&2; }
+
+echo -e "${BOLD}=====================================================${RESET}"
+echo -e "${BOLD}   Claos Dashboard — Setup${RESET}"
+echo -e "${BOLD}=====================================================${RESET}"
+echo ""
+
+# ---------------------------------------------------------------------------
+# 1. Vérifier Node.js ≥ 18
+# ---------------------------------------------------------------------------
+info "Checking Node.js version..."
+
+if ! command -v node &>/dev/null; then
+  error "Node.js is not installed. Please install Node.js 18 or later."
+  error "  → https://nodejs.org or use nvm: https://github.com/nvm-sh/nvm"
+  exit 1
+fi
+
+NODE_VERSION=$(node -e "console.log(process.versions.node.split('.')[0])")
+if [[ "$NODE_VERSION" -lt 18 ]]; then
+  error "Node.js ${NODE_VERSION} detected. Version 18+ is required."
+  error "  → Upgrade: nvm install 20 && nvm use 20"
+  exit 1
+fi
+
+success "Node.js $(node --version) detected."
+
+# ---------------------------------------------------------------------------
+# 2. npm install
+# ---------------------------------------------------------------------------
+info "Installing dependencies (npm install)..."
+npm install
+success "Dependencies installed."
+echo ""
+
+# ---------------------------------------------------------------------------
+# 3. Demander le mot de passe dashboard (masqué)
+# ---------------------------------------------------------------------------
+echo -e "${BOLD}Dashboard password${RESET}"
+echo "This password protects the Claos web interface."
+
+while true; do
+  read -rsp "  Password (hidden): " DASHBOARD_PASSWORD
+  echo ""
+  if [[ -z "$DASHBOARD_PASSWORD" ]]; then
+    warn "Password cannot be empty. Please try again."
+    continue
+  fi
+  read -rsp "  Confirm password:  " DASHBOARD_PASSWORD_CONFIRM
+  echo ""
+  if [[ "$DASHBOARD_PASSWORD" != "$DASHBOARD_PASSWORD_CONFIRM" ]]; then
+    warn "Passwords do not match. Please try again."
+    continue
+  fi
+  break
+done
+
+# ---------------------------------------------------------------------------
+# 4. Générer le hash bcrypt
+# ---------------------------------------------------------------------------
+info "Hashing password with bcrypt (rounds=12)..."
+PASSWORD_HASH=$(node -e "require('bcrypt').hash(process.argv[1], 12).then(console.log)" -- "$DASHBOARD_PASSWORD")
+success "Password hashed."
+echo ""
+
+# ---------------------------------------------------------------------------
+# 5. Demander l'URL du gateway Clawdbot
+# ---------------------------------------------------------------------------
+echo -e "${BOLD}Clawdbot Gateway${RESET}"
+echo "The WebSocket URL of your Clawdbot gateway (e.g. ws://localhost:18789)."
+read -rp "  Gateway URL: " GATEWAY_URL
+if [[ -z "$GATEWAY_URL" ]]; then
+  warn "No gateway URL provided — you can add it later in .env.local."
+  GATEWAY_URL=""
+fi
+echo ""
+
+# ---------------------------------------------------------------------------
+# 6. Demander le token du gateway
+# ---------------------------------------------------------------------------
+echo "Gateway authentication token (leave blank if none)."
+read -rsp "  Gateway token (hidden): " GATEWAY_TOKEN
+echo ""
+echo ""
+
+# ---------------------------------------------------------------------------
+# 7. Générer un CSRF_SECRET aléatoire
+# ---------------------------------------------------------------------------
+info "Generating CSRF secret..."
+CSRF_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+success "CSRF secret generated."
+echo ""
+
+# ---------------------------------------------------------------------------
+# 7b. Créer le dossier de données persistant
+# ---------------------------------------------------------------------------
+DATA_DIR="$HOME/.claos"
+info "Creating persistent data directory at ${DATA_DIR}..."
+mkdir -p "$DATA_DIR"
+chmod 700 "$DATA_DIR"
+success "Data directory ready: ${DATA_DIR}"
+echo ""
+
+# ---------------------------------------------------------------------------
+# 8. Écrire le .env.local
+# ---------------------------------------------------------------------------
+info "Writing .env.local..."
+
+ENV_FILE=".env.local"
+
+# Backup if exists
+if [[ -f "$ENV_FILE" ]]; then
+  BACKUP="${ENV_FILE}.bak.$(date +%Y%m%d_%H%M%S)"
+  warn "Existing .env.local found — backing up to ${BACKUP}"
+  cp "$ENV_FILE" "$BACKUP"
+fi
+
+cat > "$ENV_FILE" << EOF
+# Claos Dashboard — Environment Configuration
+# Generated by install.sh on $(date)
+
+# --- Authentication ---
+# bcrypt hash of the dashboard password (rounds=12)
+CLAOS_PASSWORD_HASH=${PASSWORD_HASH}
+
+# CSRF secret for request forgery protection (auto-generated)
+CSRF_SECRET=${CSRF_SECRET}
+
+# --- Clawdbot Gateway ---
+# WebSocket URL of the Clawdbot gateway
+CLAWDBOT_GATEWAY_URL=${GATEWAY_URL}
+
+# Authentication token for the gateway (leave empty if none)
+CLAWDBOT_GATEWAY_TOKEN=${GATEWAY_TOKEN}
+
+# --- Data Directory ---
+# Persistent data directory for group sessions and config
+DATA_DIR=${DATA_DIR}
+
+# Set to "true" to enforce HTTPS redirect (when behind a reverse proxy)
+# FORCE_HTTPS=true
+
+# Set to "true" to bind sessions to IP + User-Agent (stricter security)
+# STRICT_SESSION_BINDING=false
+EOF
+
+chmod 600 "$ENV_FILE"
+success ".env.local written."
+echo ""
+
+# ---------------------------------------------------------------------------
+# 9. Message de succès
+# ---------------------------------------------------------------------------
+echo -e "${BOLD}=====================================================${RESET}"
+echo -e "${GREEN}${BOLD}  ✓ Setup complete!${RESET}"
+echo -e "${BOLD}=====================================================${RESET}"
+echo ""
+echo -e "${BOLD}Next steps:${RESET}"
+echo ""
+echo -e "  ${CYAN}Development mode:${RESET}"
+echo -e "    npm run dev"
+echo -e "    → Open http://localhost:3000"
+echo ""
+echo -e "  ${CYAN}Production mode (PM2):${RESET}"
+echo -e "    npm run build"
+echo -e "    pm2 start ecosystem.config.js --env production"
+echo -e "    # or:"
+echo -e "    pm2 start 'npm start' --name claos"
+echo ""
+echo -e "  ${CYAN}Production mode (Docker):${RESET}"
+echo -e "    docker compose -f docker-compose.prod.yml up -d"
+echo ""
+echo -e "  ${YELLOW}Tip:${RESET} Edit ${BOLD}.env.local${RESET} to adjust optional settings."
+echo ""

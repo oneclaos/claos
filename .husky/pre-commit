@@ -1,0 +1,8 @@
+# Lint staged files
+npx lint-staged
+
+# Type check (source files only, tests checked in CI)
+npx tsc --noEmit -p tsconfig.json --skipLibCheck 2>/dev/null || echo "TypeScript warnings (non-blocking)"
+
+# Run tests related to staged files (optional, can be slow)
+# npm test -- --bail --findRelatedTests $(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx)$' | xargs)

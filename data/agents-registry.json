@@ -1,0 +1,34 @@
+{
+  "agents": [
+    {
+      "id": "james",
+      "name": "James",
+      "port": 18789,
+      "online": true,
+      "avatar": "💰"
+    },
+    {
+      "id": "clawdio",
+      "name": "Clawdio",
+      "port": 18797,
+      "online": true,
+      "avatar": "🎯"
+    },
+    {
+      "id": "hunter",
+      "name": "Hunter",
+      "port": 18793,
+      "online": true,
+      "avatar": "🎯"
+    },
+    {
+      "id": "moltbot",
+      "name": "Moltbot",
+      "port": 18750,
+      "online": true,
+      "avatar": "🤖"
+    }
+  ],
+  "updatedAt": "2026-02-16T19:30:00+01:00",
+  "count": 4
+}

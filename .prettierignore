@@ -1,0 +1,10 @@
+node_modules
+.next
+.next/standalone
+coverage
+dist
+build
+*.log
+.env*
+!.env.example
+package-lock.json
