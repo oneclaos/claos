@@ -132,18 +132,6 @@ async function dbGetAll<T>(storeName: StoreName): Promise<T[]> {
   })
 }
 
-async function dbClear(storeName: StoreName): Promise<void> {
-  const db = await getDB()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(storeName, 'readwrite')
-    const store = tx.objectStore(storeName)
-    const request = store.clear()
-
-    request.onsuccess = () => resolve()
-    request.onerror = () => reject(request.error)
-  })
-}
-
 // ============================================
 // Sessions API
 // ============================================
@@ -406,8 +394,7 @@ export async function migrateFromLocalStorage(): Promise<void> {
         const lastSession = JSON.parse(lastSessionRaw)
         if (lastSession?.sessionKey) {
           const isGroup =
-            lastSession.sessionKey.startsWith('claos-multiagent-') ||
-            lastSession.kind === 'group'
+            lastSession.sessionKey.startsWith('claos-multiagent-') || lastSession.kind === 'group'
           await setLastSession({
             id: `${lastSession.gateway}:${lastSession.sessionKey}`,
             gateway: lastSession.gateway,

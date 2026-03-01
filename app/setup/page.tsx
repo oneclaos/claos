@@ -26,17 +26,17 @@ export default function SetupPage() {
       await getCsrfToken()
       const res = await fetch('/api/auth/totp')
       const data = await res.json()
-      
+
       if (data.error) {
         router.push('/login')
         return
       }
-      
+
       if (!data.setupRequired) {
         router.push('/')
         return
       }
-      
+
       setStep('generate')
     } catch {
       router.push('/login')
@@ -50,16 +50,16 @@ export default function SetupPage() {
       const res = await fetchWithCsrf('/api/auth/totp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'setup' })
+        body: JSON.stringify({ action: 'setup' }),
       })
-      
+
       const data = await res.json()
-      
+
       if (data.error) {
         setError(data.error)
         return
       }
-      
+
       setQrCode(data.qrCode)
       setSecret(data.secret)
       setRecoveryCodes(data.recoveryCodes)
@@ -76,23 +76,23 @@ export default function SetupPage() {
       setError('Enter 6-digit code')
       return
     }
-    
+
     setLoading(true)
     setError('')
     try {
       const res = await fetchWithCsrf('/api/auth/totp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'verify-setup', code: verifyCode })
+        body: JSON.stringify({ action: 'verify-setup', code: verifyCode }),
       })
-      
+
       const data = await res.json()
-      
+
       if (data.error) {
         setError(data.error)
         return
       }
-      
+
       setStep('done')
     } catch {
       setError('Verification failed')
@@ -123,10 +123,8 @@ export default function SetupPage() {
   return (
     <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-6">
       <div className="w-full max-w-lg">
-        
         {/* Card */}
         <div className="card mb-6">
-          
           {/* Header */}
           <div className="text-center section-spacing mb-8">
             <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -148,7 +146,7 @@ export default function SetupPage() {
           {step === 'generate' && (
             <div className="space-y-6">
               <div className="info-box">
-                <p className="info-box-title">You'll need:</p>
+                <p className="info-box-title">You&apos;ll need:</p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>An authenticator app (Google Authenticator, Authy, 1Password, etc.)</li>
                   <li>Your phone to scan the QR code</li>
@@ -164,10 +162,12 @@ export default function SetupPage() {
               <div className="flex justify-center section-spacing">
                 <img src={qrCode} alt="TOTP QR Code" className="w-48 h-48 rounded-xl" />
               </div>
-              
+
               {/* Manual Entry */}
               <div className="info-box">
-                <p className="text-xs text-[var(--foreground-muted)] mb-2">Can't scan? Enter manually:</p>
+                <p className="text-xs text-[var(--foreground-muted)] mb-2">
+                  Can&apos;t scan? Enter manually:
+                </p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 text-sm font-mono bg-white px-3 py-2 rounded-lg border border-[var(--border)] break-all">
                     {secret}
@@ -176,7 +176,11 @@ export default function SetupPage() {
                     onClick={() => copyToClipboard(secret, 'secret')}
                     className="p-2 hover:bg-[var(--background)] rounded-lg transition-colors"
                   >
-                    {copiedSecret ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                    {copiedSecret ? (
+                      <Check className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -186,13 +190,20 @@ export default function SetupPage() {
                 <div className="flex items-start gap-2 mb-3">
                   <AlertTriangle className="w-5 h-5 text-[var(--error)] flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium text-[var(--foreground-secondary)]">Save these recovery codes!</p>
-                    <p className="text-xs text-[var(--foreground-muted)]">If you lose your phone, use these to regain access.</p>
+                    <p className="font-medium text-[var(--foreground-secondary)]">
+                      Save these recovery codes!
+                    </p>
+                    <p className="text-xs text-[var(--foreground-muted)]">
+                      If you lose your phone, use these to regain access.
+                    </p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   {recoveryCodes.map((code, i) => (
-                    <code key={i} className="text-sm font-mono bg-white px-2 py-1 rounded border border-[var(--border)]">
+                    <code
+                      key={i}
+                      className="text-sm font-mono bg-white px-2 py-1 rounded border border-[var(--border)]"
+                    >
                       {code}
                     </code>
                   ))}
@@ -201,7 +212,11 @@ export default function SetupPage() {
                   onClick={() => copyToClipboard(recoveryCodes.join('\n'), 'codes')}
                   className="w-full py-2 text-sm rounded-lg border border-[var(--border)] hover:bg-white transition-colors flex items-center justify-center gap-2"
                 >
-                  {copiedCodes ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  {copiedCodes ? (
+                    <Check className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
                   {copiedCodes ? 'Copied!' : 'Copy all codes'}
                 </button>
               </div>
@@ -244,15 +259,11 @@ export default function SetupPage() {
 
         {/* Action button outside card */}
         {step === 'generate' && (
-          <button
-            onClick={generateSetup}
-            disabled={loading}
-            className="btn btn-primary w-full"
-          >
+          <button onClick={generateSetup} disabled={loading} className="btn btn-primary w-full">
             {loading ? 'Generating...' : 'Generate QR Code'}
           </button>
         )}
-        
+
         {step === 'verify' && (
           <button
             onClick={verifySetup}
@@ -262,12 +273,9 @@ export default function SetupPage() {
             {loading ? 'Verifying...' : 'Verify & Enable'}
           </button>
         )}
-        
+
         {step === 'done' && (
-          <button
-            onClick={() => router.push('/')}
-            className="btn btn-primary w-full"
-          >
+          <button onClick={() => router.push('/')} className="btn btn-primary w-full">
             Continue to Dashboard
           </button>
         )}

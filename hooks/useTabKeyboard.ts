@@ -16,14 +16,21 @@ import { useTabContext } from '@/context/tab-context'
  *   Alt+1-9       → activateTab(tabs[n-1])
  */
 export function useTabKeyboard(): void {
-  if (typeof window === 'undefined') return // SSR guard at call-site
+  const {
+    tabs,
+    activeTab,
+    openTab,
+    closeTab,
+    activateTab,
+    goToPrevTab,
+    goToNextTab,
+    reopenLastClosedTab,
+  } = useTabContext()
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const { tabs, activeTab, openTab, closeTab, activateTab, goToPrevTab, goToNextTab, reopenLastClosedTab } =
-    useTabContext()
-
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
+    // SSR guard inside effect
+    if (typeof window === 'undefined') return
+
     const handler = (e: KeyboardEvent) => {
       if (!e.altKey) return
       // Skip keyboard shortcuts on mobile viewports (< 768px = md breakpoint)
@@ -80,5 +87,14 @@ export function useTabKeyboard(): void {
 
     window.addEventListener('keydown', handler, { capture: true })
     return () => window.removeEventListener('keydown', handler, { capture: true })
-  }, [tabs, activeTab, openTab, closeTab, activateTab, goToPrevTab, goToNextTab, reopenLastClosedTab])
+  }, [
+    tabs,
+    activeTab,
+    openTab,
+    closeTab,
+    activateTab,
+    goToPrevTab,
+    goToNextTab,
+    reopenLastClosedTab,
+  ])
 }

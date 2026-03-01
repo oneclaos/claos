@@ -100,8 +100,8 @@ function NavButton({
 }
 
 // ─── NavLink — for Settings (external routing) ───────────────────────────────
-
-function NavLink({
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _NavLink({
   item,
   isActive,
   isExpanded,
@@ -136,7 +136,7 @@ function NavLink({
 function SidebarInner({
   isExpanded,
   activeView,
-  pathname,
+  pathname: _pathname,
   onNav,
   isMobile = false,
   onClose,
@@ -160,9 +160,18 @@ function SidebarInner({
         {isMobile ? (
           // Mobile header: logo + title + close button
           <div className="flex items-center w-full px-4">
-            <Image src="/logo.svg" alt="Logo" width={52} height={52} className="flex-shrink-0 object-contain" />
+            <Image
+              src="/logo.svg"
+              alt="Logo"
+              width={52}
+              height={52}
+              className="flex-shrink-0 object-contain"
+            />
             <div className="flex flex-col ml-3 flex-1 min-w-0">
-              <span className="text-sm whitespace-nowrap" style={{ fontFamily: "var(--font-serif)", fontWeight: 400 }}>
+              <span
+                className="text-sm whitespace-nowrap"
+                style={{ fontFamily: 'var(--font-serif)', fontWeight: 400 }}
+              >
                 Claos
               </span>
               <div className="flex items-center gap-1">
@@ -186,7 +195,13 @@ function SidebarInner({
             aria-label={isExpanded ? undefined : 'Claos Home'}
           >
             <span className="w-[56px] flex-shrink-0 flex items-center justify-center">
-              <Image src="/logo.svg" alt="Logo" width={52} height={52} className="object-contain transition-transform duration-200 group-hover:scale-105" />
+              <Image
+                src="/logo.svg"
+                alt="Logo"
+                width={52}
+                height={52}
+                className="object-contain transition-transform duration-200 group-hover:scale-105"
+              />
             </span>
             <div
               className={cn(
@@ -195,7 +210,10 @@ function SidebarInner({
                 isExpanded ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0'
               )}
             >
-              <span className="text-sm whitespace-nowrap" style={{ fontFamily: "var(--font-serif)", fontWeight: 400 }}>
+              <span
+                className="text-sm whitespace-nowrap"
+                style={{ fontFamily: 'var(--font-serif)', fontWeight: 400 }}
+              >
                 Claos
               </span>
               <div className="flex items-center gap-1">
@@ -210,11 +228,7 @@ function SidebarInner({
       </div>
 
       {/* ── Nav ── */}
-      <nav
-        className="flex-1 py-3 overflow-hidden"
-        role="navigation"
-        aria-label="Main navigation"
-      >
+      <nav className="flex-1 py-3 overflow-hidden" role="navigation" aria-label="Main navigation">
         {/* Chat section */}
         <div className="mb-1">
           <div className="h-6 flex items-center">
@@ -274,7 +288,6 @@ function SidebarInner({
                 onClick={() => onNav(item.view)}
               />
             ))}
-
           </ul>
         </div>
       </nav>
@@ -318,7 +331,7 @@ export function Sidebar() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const { navigateActiveTab, openTab, activeTab, tabs } = useTabContext()
-  const activeTabId = tabs.find(t => t.isActive)?.id ?? null
+  const activeTabId = tabs.find((t) => t.isActive)?.id ?? null
 
   const handleMouseEnter = useCallback(() => setIsExpanded(true), [])
   const handleMouseLeave = useCallback(() => setIsExpanded(false), [])

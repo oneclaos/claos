@@ -51,10 +51,6 @@ interface SessionsCache {
 let sessionsCache: SessionsCache | null = null
 const SESSIONS_CACHE_TTL_MS = 5_000
 
-function invalidateSessionsCache(): void {
-  sessionsCache = null
-}
-
 // Load sessions from file — returns from cache when fresh
 function loadSessions(): SessionStore {
   ensureDataDir()
@@ -233,10 +229,6 @@ interface ConfigCache {
 }
 let configCache: ConfigCache | null = null
 const CONFIG_CACHE_TTL_MS = 30_000
-
-function invalidateConfigCache(): void {
-  configCache = null
-}
 
 function loadAppConfig(): AppConfig {
   if (configCache && Date.now() - configCache.loadedAt < CONFIG_CACHE_TTL_MS) {

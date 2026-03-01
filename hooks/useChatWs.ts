@@ -44,88 +44,91 @@ export function useChatWs(gatewayId: string | null | undefined): UseChatWsReturn
   const ws = useGatewayWs({ gatewayId })
 
   // Keep track of active stream request ids → cleanup fns
-  const activeStreamsRef = useRef<Map<string, () => void>>(new Map())
+  const _activeStreamsRef = useRef<Map<string, () => void>>(new Map())
 
-  const streamChat = useCallback(async (params: StreamChatParams): Promise<string> => {
-    const { sessionKey, message, idempotencyKey, attachments, onDelta, onDone, onError } = params
+  const streamChat = useCallback(
+    async (params: StreamChatParams): Promise<string> => {
+      const { sessionKey, message, idempotencyKey, attachments, onDelta, onDone, onError } = params
 
-    if (ws.state !== 'connected') {
-      throw new Error('ws_not_connected')
-    }
-
-    return new Promise<string>((resolve, reject) => {
-      let activeRunId: string | null = null
-      let accumulatedText = ''
-      let settled = false
-
-      const settle = (fn: () => void) => {
-        if (settled) return
-        settled = true
-        clearTimeout(outerTimeout)
-        offAgent()
-        fn()
+      if (ws.state !== 'connected') {
+        throw new Error('ws_not_connected')
       }
 
-      // 3-minute hard timeout (agent is given plenty of time)
-      const outerTimeout = setTimeout(() => {
-        settle(() => {
-          if (accumulatedText) {
-            onDone(accumulatedText)
-            resolve(accumulatedText)
-          } else {
-            onError('Response timeout — agent took too long', 'ws.timeout')
-            reject(new Error('ws.timeout'))
-          }
-        })
-      }, 180_000)
+      return new Promise<string>((resolve, reject) => {
+        let activeRunId: string | null = null
+        let accumulatedText = ''
+        let settled = false
 
-      // Listen for agent events from the gateway
-      const offAgent = ws.on('agent', (raw: unknown) => {
-        if (settled) return
-        const p = raw as {
-          runId?: string
-          stream?: string
-          data?: { delta?: string; phase?: string; error?: string }
-        }
-        const { runId, stream, data } = p
-
-        // Strict: reject events without runId (other sessions like Telegram leaking through)
-        if (!runId) return
-        // Lock onto the first runId we see for this request
-        if (!activeRunId) activeRunId = runId
-        // Ignore events from other concurrent runs / sessions
-        if (runId !== activeRunId) return
-
-        if (stream === 'assistant' && data?.delta) {
-          accumulatedText += data.delta
-          onDelta(data.delta, accumulatedText)
+        const settle = (fn: () => void) => {
+          if (settled) return
+          settled = true
+          clearTimeout(outerTimeout)
+          offAgent()
+          fn()
         }
 
-        if (stream === 'lifecycle') {
-          if (data?.phase === 'end') {
-            settle(() => {
+        // 3-minute hard timeout (agent is given plenty of time)
+        const outerTimeout = setTimeout(() => {
+          settle(() => {
+            if (accumulatedText) {
               onDone(accumulatedText)
               resolve(accumulatedText)
-            })
-          } else if (data?.phase === 'error') {
-            settle(() => {
-              const msg = data.error ?? 'Agent lifecycle error'
-              onError(msg, 'agent.error')
-              reject(new Error(msg))
-            })
-          }
-        }
-      })
+            } else {
+              onError('Response timeout — agent took too long', 'ws.timeout')
+              reject(new Error('ws.timeout'))
+            }
+          })
+        }, 180_000)
 
-      // Send the chat message via WS
-      ws.send('chat.send', {
-        sessionKey,
-        message,
-        idempotencyKey,
-        ...(attachments?.length ? { attachments } : {}),
+        // Listen for agent events from the gateway
+        const offAgent = ws.on('agent', (raw: unknown) => {
+          if (settled) return
+          const p = raw as {
+            runId?: string
+            stream?: string
+            data?: { delta?: string; phase?: string; error?: string }
+          }
+          const { runId, stream, data } = p
+
+          // Strict: reject events without runId (other sessions like Telegram leaking through)
+          if (!runId) return
+          // Lock onto the first runId we see for this request
+          if (!activeRunId) activeRunId = runId
+          // Ignore events from other concurrent runs / sessions
+          if (runId !== activeRunId) return
+
+          if (stream === 'assistant' && data?.delta) {
+            accumulatedText += data.delta
+            onDelta(data.delta, accumulatedText)
+          }
+
+          if (stream === 'lifecycle') {
+            if (data?.phase === 'end') {
+              settle(() => {
+                onDone(accumulatedText)
+                resolve(accumulatedText)
+              })
+            } else if (data?.phase === 'error') {
+              settle(() => {
+                const msg = data.error ?? 'Agent lifecycle error'
+                onError(msg, 'agent.error')
+                reject(new Error(msg))
+              })
+            }
+          }
+        })
+
+        // Send the chat message via WS
+        ws.send('chat.send', {
+          sessionKey,
+          message,
+          idempotencyKey,
+          ...(attachments?.length ? { attachments } : {}),
+        })
       })
-    })
-  }, [ws])
+    },
+    [ws]
+  )
 
   return { state: ws.state, streamChat }
 }

@@ -50,7 +50,7 @@ function CodeBlock({ language, filename, children, rawText }: CodeBlockProps) {
   }, [rawText, filename])
 
   return (
-    <div className="my-3 rounded-xl overflow-hidden border border-[var(--color-border)] bg-[#0d1117]">
+    <div className="my-3 rounded-xl overflow-hidden border border-[var(--color-border)] bg-[#0d1117] max-w-full">
       {/* Header bar */}
       <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-[var(--color-border)]">
         <div className="flex items-center gap-2">
@@ -96,9 +96,7 @@ function CodeBlock({ language, filename, children, rawText }: CodeBlockProps) {
       </div>
       {/* Code content — children already contain syntax-highlighted spans from rehypeHighlight */}
       <pre className="overflow-x-auto overflow-y-auto max-h-64 p-4 text-sm leading-relaxed m-0 text-white">
-        <code className={language ? `language-${language}` : ''}>
-          {children}
-        </code>
+        <code className={language ? `language-${language}` : ''}>{children}</code>
       </pre>
     </div>
   )
@@ -110,7 +108,7 @@ interface MarkdownContentProps {
 
 export function MarkdownContent({ content }: MarkdownContentProps) {
   return (
-    <div className="markdown-content text-sm leading-relaxed text-[var(--color-text-primary)]">
+    <div className="markdown-content text-sm leading-relaxed text-[var(--color-text-primary)] overflow-hidden">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
@@ -143,9 +141,8 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
             // filename: from meta (e.g. ```tsx App.tsx → meta = "App.tsx")
             const filenameFromMeta = meta.trim() || null
             // Validate it looks like a filename (has extension or is simple word)
-            const filename = filenameFromMeta && /\S+\.\S+/.test(filenameFromMeta)
-              ? filenameFromMeta
-              : null
+            const filename =
+              filenameFromMeta && /\S+\.\S+/.test(filenameFromMeta) ? filenameFromMeta : null
 
             // Extract plain text for copy/download (children are React nodes from rehypeHighlight)
             const rawText = extractText(children).replace(/\n$/, '')
@@ -164,13 +161,25 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
 
           // ── Headings ─────────────────────────────────────────────────────
           h1({ children }) {
-            return <h1 className="text-lg font-bold mb-3 mt-4 first:mt-0 text-[var(--color-text-primary)]">{children}</h1>
+            return (
+              <h1 className="text-lg font-bold mb-3 mt-4 first:mt-0 text-[var(--color-text-primary)]">
+                {children}
+              </h1>
+            )
           },
           h2({ children }) {
-            return <h2 className="text-base font-semibold mb-2 mt-3 first:mt-0 text-[var(--color-text-primary)]">{children}</h2>
+            return (
+              <h2 className="text-base font-semibold mb-2 mt-3 first:mt-0 text-[var(--color-text-primary)]">
+                {children}
+              </h2>
+            )
           },
           h3({ children }) {
-            return <h3 className="text-sm font-semibold mb-2 mt-3 first:mt-0 text-[var(--color-text-primary)]">{children}</h3>
+            return (
+              <h3 className="text-sm font-semibold mb-2 mt-3 first:mt-0 text-[var(--color-text-primary)]">
+                {children}
+              </h3>
+            )
           },
 
           // ── Lists ────────────────────────────────────────────────────────
@@ -242,7 +251,9 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
 
           // ── Strong / Em ──────────────────────────────────────────────────
           strong({ children }) {
-            return <strong className="font-semibold text-[var(--color-text-primary)]">{children}</strong>
+            return (
+              <strong className="font-semibold text-[var(--color-text-primary)]">{children}</strong>
+            )
           },
           em({ children }) {
             return <em className="italic text-[var(--color-text-secondary)]">{children}</em>

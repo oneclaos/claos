@@ -16,9 +16,7 @@ import {
   setLastSession,
   getHiddenSessions,
   addHiddenSession,
-  type StoredSession,
   type StoredMessage,
-  type StoredGroup,
 } from '@/lib/storage/indexed-db'
 import type { Session, Message } from '@/lib/types'
 
@@ -193,8 +191,7 @@ export function useIndexedDB() {
         await setLastSession(null)
         return
       }
-      const isGroup =
-        session.sessionKey.startsWith('claos-multiagent-') || session.kind === 'group'
+      const isGroup = session.sessionKey.startsWith('claos-multiagent-') || session.kind === 'group'
       await setLastSession({
         id: `${session.gateway}:${session.sessionKey}`,
         gateway: session.gateway,

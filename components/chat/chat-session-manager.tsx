@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef } from 'react'
+import { useCallback } from 'react'
 import { useChat } from '@/context/chat-context'
 import { useToast } from '@/components/ui/toast'
 import { fetchWithCsrf } from '@/lib/csrf-client'
@@ -83,17 +83,19 @@ export function useChatSessionManager({ onSessionSelected }: ChatSessionManagerP
           })
           if (!res.ok) {
             const err = await res.json().catch(() => ({}))
-            throw new Error((err as { error?: string }).error || `Failed to create session on ${gw.name}`)
+            throw new Error(
+              (err as { error?: string }).error || `Failed to create session on ${gw.name}`
+            )
           }
         }
 
         const groupSession: Session = {
           sessionKey: groupSessionKey,
           gateway: gateways[0].id,
-          gatewayName: gateways.map(g => g.name).join(' + '),
+          gatewayName: gateways.map((g) => g.name).join(' + '),
           kind: 'group',
-          customName: gateways.map(g => g.name).join(' + '),
-          gatewayIds: gateways.map(g => g.id),
+          customName: gateways.map((g) => g.name).join(' + '),
+          gatewayIds: gateways.map((g) => g.id),
         }
         localSessionsRef.current.set(groupSessionKey, groupSession)
         lsSaveGroup(groupSession)
@@ -118,7 +120,7 @@ export function useChatSessionManager({ onSessionSelected }: ChatSessionManagerP
         if (isGroupSession(session) && session.gatewayIds && session.gatewayIds.length > 1) {
           // Delete from all gateways in parallel for group sessions
           await Promise.allSettled(
-            session.gatewayIds.map(gwId =>
+            session.gatewayIds.map((gwId) =>
               fetchWithCsrf(
                 `/api/sessions/${encodeURIComponent(session.sessionKey)}?gatewayId=${encodeURIComponent(gwId)}`,
                 { method: 'DELETE' }
@@ -126,9 +128,7 @@ export function useChatSessionManager({ onSessionSelected }: ChatSessionManagerP
             )
           )
         } else {
-          const rawKeyParam = session.rawKey
-            ? `&rawKey=${encodeURIComponent(session.rawKey)}`
-            : ''
+          const rawKeyParam = session.rawKey ? `&rawKey=${encodeURIComponent(session.rawKey)}` : ''
           await fetchWithCsrf(
             `/api/sessions/${encodeURIComponent(session.sessionKey)}?gatewayId=${encodeURIComponent(session.gateway)}${rawKeyParam}`,
             { method: 'DELETE' }
@@ -167,17 +167,25 @@ export function useChatSessionManager({ onSessionSelected }: ChatSessionManagerP
           localStorage.setItem('claos_hidden_sessions', JSON.stringify(hidden))
 
           const updatedSessions = sessions.filter(
-            (s) => !(s.sessionKey === session.sessionKey && s.gateway === session.gateway)
-              && !siblingSessions.some((sib) => sib.sessionKey === s.sessionKey && sib.gateway === s.gateway)
+            (s) =>
+              !(s.sessionKey === session.sessionKey && s.gateway === session.gateway) &&
+              !siblingSessions.some(
+                (sib) => sib.sessionKey === s.sessionKey && sib.gateway === s.gateway
+              )
           )
           lsSaveSessions(updatedSessions)
           const lastSession = lsLoadSelectedSession()
           if (lastSession?.sessionKey === session.sessionKey) {
             lsSaveSelectedSession(null)
           }
-        } catch { /* ignore localStorage errors */ }
+        } catch {
+          /* ignore localStorage errors */
+        }
         messagesCache.current.delete(session.sessionKey)
-        if (selectedSession?.sessionKey === session.sessionKey && selectedSession?.gateway === session.gateway) {
+        if (
+          selectedSession?.sessionKey === session.sessionKey &&
+          selectedSession?.gateway === session.gateway
+        ) {
           ctxSelectSession(null)
         }
         toast.success('Session deleted')

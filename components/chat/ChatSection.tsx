@@ -5,7 +5,6 @@ import { useChat } from '@/context/chat-context'
 import { useAgentUIControl } from '@/context/agent-ui-control-context'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/toast'
-import { fetchWithCsrf } from '@/lib/csrf-client'
 import { cn } from '@/lib/utils'
 import type { Session, Gateway } from '@/lib/types'
 import { sessionDisplayName } from '@/lib/session-utils'
@@ -29,20 +28,16 @@ export function ChatSection() {
   const toast = useToast()
 
   // ── Context state ─────────────────────────────────────────────────────────
-  const {
-    sessions,
-    gateways,
-    selectedSession,
-    messages,
-    loadingHistory,
-    loadingSessions,
-  } = useChat()
+  const { sessions, gateways, selectedSession, messages, loadingHistory, loadingSessions } =
+    useChat()
 
   // ── Hooks ─────────────────────────────────────────────────────────────────
   const { loadSessions, loadHistory } = useSessionLoader()
   const {
-    input, setInput,
-    pendingAttachments, setPendingAttachments,
+    input,
+    setInput,
+    pendingAttachments,
+    setPendingAttachments,
     sending,
     queueLength,
     fileInputRef,
@@ -53,17 +48,13 @@ export function ChatSection() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // ── Session management ────────────────────────────────────────────────────
-  const {
-    selectSession,
-    createDirectSession,
-    createGroupSession,
-    deleteSession,
-  } = useChatSessionManager({
-    onSessionSelected: () => {
-      setShowNewChat(false)
-      setShowNewGroup(false)
-    },
-  })
+  const { selectSession, createDirectSession, createGroupSession, deleteSession } =
+    useChatSessionManager({
+      onSessionSelected: () => {
+        setShowNewChat(false)
+        setShowNewGroup(false)
+      },
+    })
 
   // ── Session filters ───────────────────────────────────────────────────────
   const { appSessions, directSessions, groupSessions } = useSessionFilters({
@@ -86,9 +77,23 @@ export function ChatSection() {
   const [selectedGateways, setSelectedGateways] = useState<Gateway[]>([])
   const [msgSearch, setMsgSearch] = useState('')
 
-  // ── Auto-scroll ───────────────────────────────────────────────────────────
+  // ── Auto-scroll (improved: scroll on message content changes during streaming) ─
+  const lastMessageContentRef = useRef<string>('')
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const lastMsg = messages[messages.length - 1]
+    const lastContent = typeof lastMsg?.content === 'string' ? lastMsg.content : ''
+
+    // Always scroll on new messages or when streaming content grows significantly
+    const shouldScroll =
+      messages.length !== 0 && (lastContent !== lastMessageContentRef.current || sending)
+
+    if (shouldScroll) {
+      // Use requestAnimationFrame for smoother scrolling during streaming
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+      })
+    }
+    lastMessageContentRef.current = lastContent
   }, [messages, sending])
 
   // Reset search when switching session
@@ -147,7 +152,7 @@ export function ChatSection() {
     })
     // Cleanup localStorage orphans
     const prefix = 'claos:msgs:'
-    const activeKeys = new Set(sessions.map(s => prefix + s.sessionKey))
+    const activeKeys = new Set(sessions.map((s) => prefix + s.sessionKey))
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i)
       if (k?.startsWith(prefix) && !activeKeys.has(k)) localStorage.removeItem(k)
@@ -163,8 +168,9 @@ export function ChatSection() {
     gateways.find((g) => g.id === session.gateway)?.online ?? false
 
   const filteredMessages = msgSearch.trim()
-    ? messages.filter(m =>
-        typeof m.content === 'string' && m.content.toLowerCase().includes(msgSearch.toLowerCase())
+    ? messages.filter(
+        (m) =>
+          typeof m.content === 'string' && m.content.toLowerCase().includes(msgSearch.toLowerCase())
       )
     : messages
 
@@ -206,12 +212,10 @@ export function ChatSection() {
 
       {/* ── Tab content ── */}
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-
         {/* ════════════ MESSAGES TAB ════════════ */}
         {chatTab === 'messages' && (
           <div className="flex-1 flex min-h-0">
             <div className="flex-1 flex min-h-0 bg-white">
-
               {/* Sessions Sidebar */}
               <div className="flex-shrink-0 border-r border-[var(--color-border)]/50">
                 <SessionsSidebar
@@ -223,8 +227,14 @@ export function ChatSection() {
                   displayName={sessionDisplayName}
                   onSelect={selectSession}
                   onDelete={deleteSession}
-                  onNewChat={() => { setShowNewChat(true); setShowNewGroup(false) }}
-                  onNewGroup={() => { setShowNewGroup(true); setShowNewChat(false) }}
+                  onNewChat={() => {
+                    setShowNewChat(true)
+                    setShowNewGroup(false)
+                  }}
+                  onNewGroup={() => {
+                    setShowNewGroup(true)
+                    setShowNewChat(false)
+                  }}
                 />
               </div>
 
@@ -248,7 +258,10 @@ export function ChatSection() {
                       )
                     }
                     onCreate={handleNewGroup}
-                    onCancel={() => { setShowNewGroup(false); setSelectedGateways([]) }}
+                    onCancel={() => {
+                      setShowNewGroup(false)
+                      setSelectedGateways([])
+                    }}
                   />
                 ) : selectedSession ? (
                   <>
@@ -264,7 +277,7 @@ export function ChatSection() {
                         <input
                           type="text"
                           value={msgSearch}
-                          onChange={e => setMsgSearch(e.target.value)}
+                          onChange={(e) => setMsgSearch(e.target.value)}
                           placeholder="Search in conversation…"
                           className="w-full pl-8 pr-8 py-1.5 text-xs bg-[var(--color-bg-elevated)] rounded-xl border border-transparent focus:border-[var(--color-border)] focus:outline-none text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] transition-colors"
                         />
@@ -308,7 +321,9 @@ export function ChatSection() {
                       <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-1">
                         Select a conversation
                       </h2>
-                      <p className="text-sm text-[var(--color-text-muted)]">Or start a new chat with an agent</p>
+                      <p className="text-sm text-[var(--color-text-muted)]">
+                        Or start a new chat with an agent
+                      </p>
                     </div>
                   </div>
                 )}
@@ -323,11 +338,7 @@ export function ChatSection() {
             <div className="p-4 flex items-center justify-between max-w-3xl mx-auto">
               <h2 className="text-sm font-semibold text-gray-600">All Gateway Sessions</h2>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCleanup}
-                >
+                <Button variant="outline" size="sm" onClick={handleCleanup}>
                   <Trash2 className="h-3 w-3 mr-1" />
                   Clean up
                 </Button>

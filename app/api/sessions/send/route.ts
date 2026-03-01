@@ -25,8 +25,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate inputs
-    if (typeof message !== 'string' || message.length > 100000) {
+    if (typeof message !== 'string') {
       return NextResponse.json({ error: 'Invalid message' }, { status: 400 })
+    }
+    if (message.length > 100000) {
+      return NextResponse.json({ error: 'Message too long' }, { status: 400 })
     }
 
     // Send message and get response via OpenAI-compatible API

@@ -38,7 +38,14 @@ export function ChatInput({
   const { speechLang } = useAgentUIControl()
   // Capture text that existed before speech started so we can append (not replace)
   const preSpeechTextRef = useRef('')
-  const { isListening, isSupported, toggle: _toggle, startListening: _startListening, stopListening, errorMessage } = useSpeechRecognition((text) => {
+  const {
+    isListening,
+    isSupported,
+    toggle: _toggle,
+    startListening: _startListening,
+    stopListening,
+    errorMessage,
+  } = useSpeechRecognition((text) => {
     setInput(preSpeechTextRef.current + (preSpeechTextRef.current ? ' ' : '') + text)
   }, speechLang)
 
@@ -53,8 +60,15 @@ export function ChatInput({
     _toggle()
   }, [isListening, input, _toggle])
 
-  // Textarea ref for focus management
+  // Textarea ref for focus management + height reset
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Reset textarea height when input is cleared (after send)
+  useEffect(() => {
+    if (!input && textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+    }
+  }, [input])
 
   // FIX 1: Refocus textarea when mic stops so Enter sends message, not re-triggers mic
   const prevListeningRef = useRef(false)
@@ -67,11 +81,11 @@ export function ChatInput({
 
   // Stable refs so the event listener never goes stale
   const startListeningRef = useRef(startListening)
-  const stopListeningRef  = useRef(stopListening)
-  const isListeningRef    = useRef(isListening)
+  const stopListeningRef = useRef(stopListening)
+  const isListeningRef = useRef(isListening)
   startListeningRef.current = startListening
-  stopListeningRef.current  = stopListening
-  isListeningRef.current    = isListening
+  stopListeningRef.current = stopListening
+  isListeningRef.current = isListening
 
   // FIX 4: Alt+A / Option+A shortcut — mounted once, never re-registers
   useEffect(() => {
@@ -83,7 +97,6 @@ export function ChatInput({
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // empty deps — stable via refs
 
   return (
@@ -97,17 +110,25 @@ export function ChatInput({
               className="rounded-full bg-[var(--color-bg-elevated)] text-xs px-2 py-1 flex items-center gap-1 border border-[var(--color-border)]"
             >
               {att.type === 'image' && att.preview ? (
-                <img src={att.preview} alt={att.name} className="w-8 h-8 rounded object-cover -ml-1 mr-0.5" />
+                <img
+                  src={att.preview}
+                  alt={att.name}
+                  className="w-8 h-8 rounded object-cover -ml-1 mr-0.5"
+                />
               ) : att.type === 'audio' ? (
                 <Music className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
               ) : (
                 <FileText className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
               )}
-              <span className="max-w-[120px] truncate text-[var(--color-text-secondary)]">{att.name}</span>
-              {att.status === 'loading' && <Loader2 className="h-3 w-3 animate-spin ml-1 text-[var(--color-text-muted)]" />}
+              <span className="max-w-[120px] truncate text-[var(--color-text-secondary)]">
+                {att.name}
+              </span>
+              {att.status === 'loading' && (
+                <Loader2 className="h-3 w-3 animate-spin ml-1 text-[var(--color-text-muted)]" />
+              )}
               <button
                 type="button"
-                onClick={() => setPendingAttachments(prev => prev.filter(a => a.id !== att.id))}
+                onClick={() => setPendingAttachments((prev) => prev.filter((a) => a.id !== att.id))}
                 className="ml-1 text-[var(--color-text-muted)] hover:text-red-500 transition-colors"
                 title="Remove"
               >
@@ -118,7 +139,12 @@ export function ChatInput({
         </div>
       )}
 
-      <form onSubmit={(e) => { e.preventDefault(); sendMessage() }}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          sendMessage()
+        }}
+      >
         {/* Main input bar */}
         <div className="flex items-end gap-2 bg-white rounded-2xl px-3 py-2 border border-[var(--color-border)] shadow-sm focus-within:border-[oklch(0.70_0.20_46_/_0.4)] focus-within:ring-2 focus-within:ring-[oklch(0.70_0.20_46_/_0.1)] transition-all">
           <button
@@ -178,7 +204,7 @@ export function ChatInput({
             disabled={!input.trim() && pendingAttachments.length === 0}
             className={cn(
               'relative p-2 rounded-xl transition-all flex-shrink-0 mb-0.5',
-              (input.trim() || pendingAttachments.length > 0)
+              input.trim() || pendingAttachments.length > 0
                 ? 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)] hover:shadow-[0_0_20px_oklch(0.70_0.20_46_/_0.20)]'
                 : 'bg-[var(--color-bg-elevated)] text-[var(--color-text-muted)] cursor-not-allowed'
             )}
@@ -195,7 +221,6 @@ export function ChatInput({
             )}
           </button>
         </div>
-
       </form>
 
       {/* Quick commands — below form, visually attached */}

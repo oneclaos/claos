@@ -18,9 +18,6 @@ const APP_NAME = 'Claos'
 const RECOVERY_CODE_COUNT = 8
 const RECOVERY_CODE_LENGTH = 8
 
-// TOTP configuration
-const TOTP_WINDOW = 1 // Allow 1 step before/after for clock drift
-
 // ============================================
 // Storage
 // ============================================

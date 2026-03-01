@@ -33,7 +33,9 @@ function getLastMsgPreview(sessionKey: string): string | null {
       }
     }
     return null
-  } catch { return null }
+  } catch {
+    return null
+  }
 }
 
 function SessionItem({
@@ -76,14 +78,14 @@ function SessionItem({
         </div>
         <div className="flex items-center gap-1 mt-0.5">
           {lastMsg ? (
-            <p className="text-xs text-[var(--color-text-muted)] truncate flex-1">
-              {lastMsg}
-            </p>
+            <p className="text-xs text-[var(--color-text-muted)] truncate flex-1">{lastMsg}</p>
           ) : (
             <p className="text-xs text-[var(--color-text-muted)] italic flex-1">No messages yet</p>
           )}
           {isGroup && (
-            <Badge variant="info" className="flex-shrink-0">group</Badge>
+            <Badge variant="info" className="flex-shrink-0">
+              group
+            </Badge>
           )}
         </div>
       </div>
@@ -112,7 +114,7 @@ export function SessionsSidebar({
   isOnline,
   displayName,
   onSelect,
-  onDelete,
+  onDelete: _onDelete,
   onNewChat,
   onNewGroup,
 }: SessionsSidebarProps) {
@@ -159,7 +161,7 @@ export function SessionsSidebar({
           <input
             type="text"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Search conversations…"
             className="w-full pl-8 pr-3 py-1.5 text-xs bg-[var(--color-bg-elevated)] rounded-xl border border-transparent focus:border-[var(--color-border)] focus:outline-none text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] transition-colors"
           />
@@ -183,11 +185,14 @@ export function SessionsSidebar({
             <p className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-widest px-3 pb-1">
               Direct
             </p>
-            {filteredDirect.map(session => (
+            {filteredDirect.map((session) => (
               <SessionItem
                 key={`${session.gateway}:${session.sessionKey}`}
                 session={session}
-                isSelected={selectedSession?.sessionKey === session.sessionKey && selectedSession?.gateway === session.gateway}
+                isSelected={
+                  selectedSession?.sessionKey === session.sessionKey &&
+                  selectedSession?.gateway === session.gateway
+                }
                 isOnline={isOnline(session)}
                 displayName={displayName(session)}
                 onClick={() => onSelect(session)}
@@ -201,11 +206,14 @@ export function SessionsSidebar({
             <p className="text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-widest px-3 pb-1">
               Groups
             </p>
-            {filteredGroups.map(session => (
+            {filteredGroups.map((session) => (
               <SessionItem
                 key={`${session.gateway}:${session.sessionKey}`}
                 session={session}
-                isSelected={selectedSession?.sessionKey === session.sessionKey && selectedSession?.gateway === session.gateway}
+                isSelected={
+                  selectedSession?.sessionKey === session.sessionKey &&
+                  selectedSession?.gateway === session.gateway
+                }
                 isOnline={isOnline(session)}
                 displayName={displayName(session)}
                 onClick={() => onSelect(session)}

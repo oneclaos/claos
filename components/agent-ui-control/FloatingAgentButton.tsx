@@ -33,7 +33,7 @@ import {
   type ExecuteActionsContext,
 } from '@/lib/ui-relay-actions'
 import { buildUIControlMessage } from './ui-control-prompt'
-import { tryParseLocally } from './local-command-parser'
+// import { tryParseLocally } from './local-command-parser'
 import type { TabView } from '@/lib/tab-types'
 import { cn } from '@/lib/utils'
 import { Zap, X, Send, Square, Mic, MicOff } from 'lucide-react'
@@ -81,8 +81,16 @@ export function FloatingAgentButton() {
   }, [setSelectedAgentId])
 
   const preSpeechCommandRef = useRef('')
-  const { isListening, isSupported: micSupported, toggle: _toggleMic, startListening: _startListeningFAB, stopListening, errorMessage: micError } = useSpeechRecognition(
-    (text) => setCommand(preSpeechCommandRef.current + (preSpeechCommandRef.current ? ' ' : '') + text),
+  const {
+    isListening,
+    isSupported: micSupported,
+    toggle: _toggleMic,
+    startListening: _startListeningFAB,
+    stopListening: _stopListening,
+    errorMessage: micError,
+  } = useSpeechRecognition(
+    (text) =>
+      setCommand(preSpeechCommandRef.current + (preSpeechCommandRef.current ? ' ' : '') + text),
     speechLang
   )
   // Wrap to capture pre-speech text + refocus input after listening ends
@@ -122,15 +130,15 @@ export function FloatingAgentButton() {
   }, [open])
 
   // Stable refs for Alt+A handler
-  const activeTabRef    = useRef(activeTab)
-  const openRef         = useRef(open)
+  const activeTabRef = useRef(activeTab)
+  const openRef = useRef(open)
   const micSupportedRef = useRef(micSupported)
   const isListeningRef2 = useRef(isListening)
   const startListeningRef2 = useRef(startListening)
-  activeTabRef.current       = activeTab
-  openRef.current            = open
-  micSupportedRef.current    = micSupported
-  isListeningRef2.current    = isListening
+  activeTabRef.current = activeTab
+  openRef.current = open
+  micSupportedRef.current = micSupported
+  isListeningRef2.current = isListening
   startListeningRef2.current = startListening
 
   // Alt+A shortcut — mounted once, stable via refs
@@ -146,69 +154,74 @@ export function FloatingAgentButton() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // ─── UI Tool Executors ──────────────────────────────────────────────────
 
-  const navigateToTab = useCallback((tab: string) => {
-    const validViews: TabView[] = ['chat', 'terminal', 'files', 'status', 'settings']
-    if (validViews.includes(tab as TabView)) {
-      navigateActiveTab(tab as TabView)
-    }
-  }, [navigateActiveTab])
+  const navigateToTab = useCallback(
+    (tab: string) => {
+      const validViews: TabView[] = ['chat', 'terminal', 'files', 'status', 'settings']
+      if (validViews.includes(tab as TabView)) {
+        navigateActiveTab(tab as TabView)
+      }
+    },
+    [navigateActiveTab]
+  )
 
   const ensureTerminal = useCallback(async (): Promise<string | null> => {
     navigateActiveTab('terminal')
     const current = windowsRef.current
     if (current.length === 0) {
       await createTerminal()
-      await new Promise(r => setTimeout(r, 500))
+      await new Promise((r) => setTimeout(r, 500))
     }
     const latest = windowsRef.current
     return latest[0]?.sessionId ?? null
   }, [navigateActiveTab, createTerminal])
 
-  const typeCommand = useCallback(async (cmd: string, sessionId: string) => {
-    const chars = (cmd + '\r').split('')
-    for (const char of chars) {
-      if (abortRef.current?.signal.aborted) return
-      await fetchWithCsrf(`/api/terminal/${sessionId}/write`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: char }),
-      })
-      await new Promise(r => setTimeout(r, 20))
-    }
-  }, [abortRef])
+  const typeCommand = useCallback(
+    async (cmd: string, sessionId: string) => {
+      const chars = (cmd + '\r').split('')
+      for (const char of chars) {
+        if (abortRef.current?.signal.aborted) return
+        await fetchWithCsrf(`/api/terminal/${sessionId}/write`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: char }),
+        })
+        await new Promise((r) => setTimeout(r, 20))
+      }
+    },
+    [abortRef]
+  )
 
   // ─── Execute a list of parsed actions in order ───────────────────────────
 
-  const executeActions = useCallback(async (
-    actions: UIAction[],
-    abort: AbortController
-  ): Promise<void> => {
-    const context: ExecuteActionsContext = {
-      abort,
-      navigateToTab,
-      ensureTerminal,
-      typeCommand,
-      selectSessionByKey: (key: string) => {
-        const target = sessionsRef.current.find(s => s.sessionKey === key)
-        if (target) selectSession(target)
-      },
-      initialTerminalSessionId: windowsRef.current[0]?.sessionId ?? null,
-      setPendingNavPath,
-    }
-    await executeUIActions(actions, context)
-  }, [navigateToTab, ensureTerminal, typeCommand, selectSession, setPendingNavPath])
+  const executeActions = useCallback(
+    async (actions: UIAction[], abort: AbortController): Promise<void> => {
+      const context: ExecuteActionsContext = {
+        abort,
+        navigateToTab,
+        ensureTerminal,
+        typeCommand,
+        selectSessionByKey: (key: string) => {
+          const target = sessionsRef.current.find((s) => s.sessionKey === key)
+          if (target) selectSession(target)
+        },
+        initialTerminalSessionId: windowsRef.current[0]?.sessionId ?? null,
+        setPendingNavPath,
+      }
+      await executeUIActions(actions, context)
+    },
+    [navigateToTab, ensureTerminal, typeCommand, selectSession, setPendingNavPath]
+  )
 
   // ─── Execute ────────────────────────────────────────────────────────────
 
   const execute = useCallback(async () => {
     if (!command.trim() || status === 'running') return
 
-    const agent = agents.find(a => a.id === selectedAgentId) ?? agents[0]
+    const agent = agents.find((a) => a.id === selectedAgentId) ?? agents[0]
     if (!agent) return
 
     setOpen(false)
@@ -235,7 +248,7 @@ export function FloatingAgentButton() {
       const csrfToken = await getCsrfToken()
       const message = buildUIControlMessage(command, {
         activeTab: activeTab?.view ?? 'unknown',
-        openTerminals: windowsRef.current.map(w => ({
+        openTerminals: windowsRef.current.map((w) => ({
           name: w.name,
           sessionId: w.sessionId,
           dead: w.dead,
@@ -363,7 +376,7 @@ export function FloatingAgentButton() {
           if (isRunning) {
             stop()
           } else {
-            setOpen(prev => {
+            setOpen((prev) => {
               const next = !prev
               if (next && micSupported) {
                 setTimeout(() => startListening(), 100)
@@ -378,16 +391,12 @@ export function FloatingAgentButton() {
           'transition-all duration-200 active:scale-95',
           isRunning
             ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
-            : 'gradient-primary  text-white',
+            : 'gradient-primary  text-white'
         )}
         aria-label={isRunning ? 'Stop agent' : 'Launch agent'}
         title={isRunning ? 'Stop' : 'Agent UI Control (⚡)'}
       >
-        {isRunning ? (
-          <Square className="w-5 h-5" />
-        ) : (
-          <Zap className="w-5 h-5" />
-        )}
+        {isRunning ? <Square className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
       </button>
 
       {/* Popup */}
@@ -398,7 +407,7 @@ export function FloatingAgentButton() {
             'fixed bottom-36 right-4 md:bottom-24 md:right-6 z-[60]',
             'w-80 rounded-xl shadow-2xl border',
             'bg-[var(--background)] border-[var(--border)]',
-            'p-4 flex flex-col gap-3',
+            'p-4 flex flex-col gap-3'
           )}
         >
           {/* Header */}
@@ -418,7 +427,7 @@ export function FloatingAgentButton() {
           {/* Agent selector — only shown if multiple agents */}
           {multipleAgents && (
             <div className="space-y-1">
-              {agents.map(a => (
+              {agents.map((a) => (
                 <button
                   key={a.id}
                   onClick={() => {
@@ -464,8 +473,8 @@ export function FloatingAgentButton() {
                 ref={inputRef}
                 type="text"
                 value={command}
-                onChange={e => setCommand(e.target.value)}
-                onKeyDown={e => {
+                onChange={(e) => setCommand(e.target.value)}
+                onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
                     execute()
@@ -478,7 +487,7 @@ export function FloatingAgentButton() {
                   'bg-[var(--background-secondary)] border border-[var(--border)]',
                   'text-[var(--foreground)] placeholder:text-[var(--foreground-muted)]',
                   'focus:outline-none focus:ring-1 focus:ring-[var(--primary)]',
-                  isListening && 'ring-1 ring-red-400 border-red-300',
+                  isListening && 'ring-1 ring-red-400 border-red-300'
                 )}
               />
               {micSupported && (
@@ -488,10 +497,16 @@ export function FloatingAgentButton() {
                   title={isListening ? 'Stop' : 'Dictate'}
                   className={cn(
                     'absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded transition-colors',
-                    isListening ? 'text-red-500 animate-pulse' : 'text-[var(--foreground-muted)] hover:text-[var(--primary)]'
+                    isListening
+                      ? 'text-red-500 animate-pulse'
+                      : 'text-[var(--foreground-muted)] hover:text-[var(--primary)]'
                   )}
                 >
-                  {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                  {isListening ? (
+                    <MicOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Mic className="h-3.5 w-3.5" />
+                  )}
                 </button>
               )}
               {micError && (
@@ -507,7 +522,7 @@ export function FloatingAgentButton() {
                 'flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center',
                 'gradient-primary text-white',
                 'disabled:opacity-40 disabled:cursor-not-allowed',
-                'active:scale-95 transition-all',
+                'active:scale-95 transition-all'
               )}
               aria-label="Run"
             >

@@ -14,7 +14,7 @@ async function requestMicPermission(): Promise<boolean> {
     }
     // Trigger permission prompt via getUserMedia
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    stream.getTracks().forEach(t => t.stop())
+    stream.getTracks().forEach((t) => t.stop())
     return true
   } catch {
     return false
@@ -25,7 +25,6 @@ export function useSpeechRecognition(
   onTranscript: (text: string, isFinal?: boolean) => void,
   lang = 'en-US'
 ) {
-  const resolvedLang = lang
   const [isListening, setIsListening] = useState(false)
   const [isSupported, setIsSupported] = useState(false)
   const [error, setError] = useState<SpeechError>(null)
@@ -33,20 +32,22 @@ export function useSpeechRecognition(
   const recognitionRef = useRef<any>(null)
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- SpeechRecognition is not in lib.dom.d.ts; vendor-prefixed API requires any cast
+    /* eslint-disable @typescript-eslint/no-explicit-any -- SpeechRecognition vendor-prefixed API */
     const SR =
       typeof window !== 'undefined'
         ? ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition)
         : null
-    setIsSupported(!!SR && !!(navigator.mediaDevices?.getUserMedia))
+    /* eslint-enable @typescript-eslint/no-explicit-any */
+    setIsSupported(!!SR && !!navigator.mediaDevices?.getUserMedia)
   }, [])
 
   const startListening = useCallback(async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- SpeechRecognition is not in lib.dom.d.ts; vendor-prefixed API requires any cast
+    /* eslint-disable @typescript-eslint/no-explicit-any -- SpeechRecognition vendor-prefixed API */
     const SR =
       typeof window !== 'undefined'
         ? ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition)
         : null
+    /* eslint-enable @typescript-eslint/no-explicit-any */
     if (!SR) return
 
     setError(null)
@@ -60,7 +61,7 @@ export function useSpeechRecognition(
     }
 
     const recognition = new SR()
-    recognition.lang = resolvedLang
+    recognition.lang = lang
     recognition.interimResults = true
     recognition.continuous = false
 
@@ -120,15 +121,16 @@ export function useSpeechRecognition(
     else startListening()
   }, [isListening, startListening, stopListening])
 
-  const errorMessage: string | null = error === 'not-allowed'
-    ? '🎤 Microphone access denied — allow mic in browser settings'
-    : error === 'no-speech'
-    ? '🎤 No speech detected'
-    : error === 'network'
-    ? '🎤 Network error — please retry'
-    : error === 'unsupported'
-    ? '🎤 Not supported by this browser'
-    : null
+  const errorMessage: string | null =
+    error === 'not-allowed'
+      ? '🎤 Microphone access denied — allow mic in browser settings'
+      : error === 'no-speech'
+        ? '🎤 No speech detected'
+        : error === 'network'
+          ? '🎤 Network error — please retry'
+          : error === 'unsupported'
+            ? '🎤 Not supported by this browser'
+            : null
 
   return { isListening, isSupported, toggle, startListening, stopListening, error, errorMessage }
 }

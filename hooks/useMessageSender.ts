@@ -103,7 +103,8 @@ export function useMessageSender() {
   const setSending = useCallback((key: string, active: boolean) => {
     setSendingKeys((prev) => {
       const next = new Set(prev)
-      active ? next.add(key) : next.delete(key)
+      if (active) next.add(key)
+      else next.delete(key)
       return next
     })
   }, [])
@@ -214,8 +215,14 @@ export function useMessageSender() {
   // ── Core message sender ────────────────────────────────────────────────────
   // Accepts an explicit targetSession so queued messages always go to the right
   // session, regardless of which session the user has selected at drain time.
+  // User message is already displayed by sendMessage() before this is called
   const sendMessageCore = useCallback(
-    async (text: string, capturedAttachments: PendingAttachment[], targetSession?: Session) => {
+    async (
+      text: string,
+      capturedAttachments: PendingAttachment[],
+      targetSession?: Session,
+      _skipUserMsg = false
+    ) => {
       const session = targetSession ?? selectedSession
       if (!session) return
 
@@ -235,26 +242,9 @@ export function useMessageSender() {
         .filter((a) => a.type === 'image' && a.status === 'ready' && a.content)
         .map((a) => ({ content: a.content!, mimeType: a.mimeType, fileName: a.name }))
 
-      const displayAttachments = capturedAttachments
-        .filter((a) => a.type === 'image' && a.preview)
-        .map((a) => ({
-          type: 'image' as const,
-          name: a.name,
-          preview: a.preview,
-          mimeType: a.mimeType,
-        }))
-
       // Generate unique requestId for this conversation turn
       // This prevents message mixing between sessions
       const requestId = `req-${session.sessionKey}-${Date.now()}-${Math.random().toString(36).slice(2)}`
-
-      const userMsg: Message = {
-        role: 'user',
-        content: text.trim() || capturedAttachments.map((a) => `[📎 ${a.name}]`).join(' '),
-        timestamp: new Date().toISOString(),
-        attachments: displayAttachments.length > 0 ? displayAttachments : undefined,
-        requestId, // Track which request this message belongs to
-      }
 
       // Update cache + visible messages (only if still on this session)
       const addMessages = (updater: (prev: Message[]) => Message[]) => {
@@ -267,7 +257,8 @@ export function useMessageSender() {
         }
       }
 
-      addMessages((prev) => [...prev, userMsg])
+      // User message is already displayed by sendMessage() - don't duplicate
+      // (skipUserMsg is true when called from sendMessage)
 
       // ── Stream one gateway response into a new placeholder message ─────────
       const streamOneGateway = async (
@@ -843,11 +834,42 @@ export function useMessageSender() {
       if (selectedSessionRef.current?.sessionKey === sessionKey) {
         setQueueLength(queue.length)
       }
-      await sendMessageCore(next.text, next.attachments, next.session)
+      await sendMessageCore(next.text, next.attachments, next.session, true) // skipUserMsg - already displayed
       await processNext(sessionKey)
       // processNext is stable - sendMessageCore dep tracked below
     },
     [sendMessageCore]
+  )
+
+  // ── Helper to display user message immediately ────────────────────────────
+  const displayUserMessage = useCallback(
+    (text: string, attachments: PendingAttachment[], session: Session) => {
+      const displayAttachments = attachments
+        .filter((a) => a.type === 'image' && a.preview)
+        .map((a) => ({
+          type: 'image' as const,
+          name: a.name,
+          preview: a.preview,
+          mimeType: a.mimeType,
+        }))
+
+      const userMsg: Message = {
+        role: 'user',
+        content: text || attachments.map((a) => `[📎 ${a.name}]`).join(' '),
+        timestamp: new Date().toISOString(),
+        attachments: displayAttachments.length > 0 ? displayAttachments : undefined,
+      }
+
+      // Add to cache and display
+      const currentCached = messagesCache.current.get(session.sessionKey) ?? []
+      const next = [...currentCached, userMsg]
+      messagesCache.current.set(session.sessionKey, next)
+      lsSaveMessages(session.sessionKey, next)
+      if (selectedSessionRef.current?.sessionKey === session.sessionKey) {
+        setMessages(next)
+      }
+    },
+    [messagesCache, lsSaveMessages, setMessages]
   )
 
   // ── Public sendMessage: captures input, queues or sends immediately ───────
@@ -857,10 +879,22 @@ export function useMessageSender() {
     const sessionKey = selectedSession.sessionKey
     const capturedText = input.trim()
     const capturedAttachments = [...pendingAttachments]
+    // Slash command = starts with /word (e.g. /abort, /status, /help)
+    // Not a command: paths like "check /home/user" or "ratio 1/2"
+    const isSlashCommand = /^\/[a-zA-Z]/.test(capturedText)
 
     // Clear input immediately (visual feedback)
     setInput('')
     setPendingAttachments([])
+
+    // ALWAYS display user message immediately in chat (no more hidden queue)
+    displayUserMessage(capturedText, capturedAttachments, selectedSession)
+
+    // Slash commands bypass the queue entirely — they run in parallel
+    if (isSlashCommand) {
+      sendMessageCore(capturedText, capturedAttachments, selectedSession, true) // skipUserMsg=true
+      return
+    }
 
     if (processingQueues.current.get(sessionKey)) {
       // Queue it for this session, capturing the exact session object
@@ -876,10 +910,10 @@ export function useMessageSender() {
     if (!messageQueues.current.has(sessionKey)) {
       messageQueues.current.set(sessionKey, [])
     }
-    sendMessageCore(capturedText, capturedAttachments, selectedSession).then(() => {
+    sendMessageCore(capturedText, capturedAttachments, selectedSession, true).then(() => {
       processNext(sessionKey)
     })
-  }, [selectedSession, input, pendingAttachments, sendMessageCore, processNext])
+  }, [selectedSession, input, pendingAttachments, sendMessageCore, processNext, displayUserMessage])
 
   return {
     input,

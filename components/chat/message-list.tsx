@@ -23,9 +23,16 @@ function highlightText(text: string, query: string): React.ReactNode {
   if (!query.trim()) return text
   const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'))
   return parts.map((part, i) =>
-    part.toLowerCase() === query.toLowerCase()
-      ? <mark key={i} className="bg-[oklch(0.90_0.15_85)] text-[var(--color-text-primary)] rounded px-0.5">{part}</mark>
-      : part
+    part.toLowerCase() === query.toLowerCase() ? (
+      <mark
+        key={i}
+        className="bg-[oklch(0.90_0.15_85)] text-[var(--color-text-primary)] rounded px-0.5"
+      >
+        {part}
+      </mark>
+    ) : (
+      part
+    )
   )
 }
 
@@ -54,14 +61,15 @@ export function MessageList({
         </div>
       ) : (
         messages.map((msg, i) => {
-          const rawContent = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
-          const parsed = msg.role === 'assistant' && isGroupSession(selectedSession)
-            ? parseGroupMessage(rawContent)
-            : { agent: null, text: rawContent }
+          const rawContent =
+            typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+          const parsed =
+            msg.role === 'assistant' && isGroupSession(selectedSession)
+              ? parseGroupMessage(rawContent)
+              : { agent: null, text: rawContent }
           // Strip UI markers from the display text (original state is untouched)
-          const displayText = msg.role === 'assistant' && uiControlEnabled
-            ? stripMarkers(parsed.text)
-            : parsed.text
+          const displayText =
+            msg.role === 'assistant' && uiControlEnabled ? stripMarkers(parsed.text) : parsed.text
           return (
             <div
               key={i}
@@ -79,20 +87,20 @@ export function MessageList({
                 />
               )}
               <div className="max-w-[72%]">
-                {parsed.agent && (
-                  <p className="msg-agent-label px-1">{parsed.agent}</p>
-                )}
-                <div className={cn(
-                  'px-4 py-2.5',
-                  msg.role === 'user'
-                    ? 'msg-user rounded-2xl rounded-tr-sm'
-                    : msg.error
-                      ? 'rounded-2xl rounded-tl-sm border border-red-500/30 bg-red-500/10 text-red-400'
-                      : 'msg-agent rounded-2xl rounded-tl-sm'
-                )}>
+                {parsed.agent && <p className="msg-agent-label px-1">{parsed.agent}</p>}
+                <div
+                  className={cn(
+                    'px-4 py-2.5 overflow-hidden',
+                    msg.role === 'user'
+                      ? 'msg-user rounded-2xl rounded-tr-sm'
+                      : msg.error
+                        ? 'rounded-2xl rounded-tl-sm border border-red-500/30 bg-red-500/10 text-red-400'
+                        : 'msg-agent rounded-2xl rounded-tl-sm'
+                  )}
+                >
                   {msg.attachments && msg.attachments.length > 0 && (
                     <div className="flex flex-wrap gap-1 mb-2">
-                      {msg.attachments.map((att, j) => (
+                      {msg.attachments.map((att, j) =>
                         att.type === 'image' && att.preview ? (
                           <img
                             key={j}
@@ -101,15 +109,19 @@ export function MessageList({
                             className="max-w-[200px] max-h-[200px] rounded-lg object-cover"
                           />
                         ) : (
-                          <span key={j} className="text-xs opacity-70">📎 {att.name}</span>
+                          <span key={j} className="text-xs opacity-70">
+                            📎 {att.name}
+                          </span>
                         )
-                      ))}
+                      )}
                     </div>
                   )}
                   {msg.role === 'assistant' ? (
                     <MarkdownContent content={displayText} />
                   ) : (
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--color-text-primary)]">{highlightText(parsed.text, searchQuery)}</p>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--color-text-primary)]">
+                      {highlightText(parsed.text, searchQuery)}
+                    </p>
                   )}
                   {msg.timestamp && (
                     <p className="text-[10px] mt-1 text-[var(--color-text-muted)]">
@@ -130,27 +142,35 @@ export function MessageList({
 
       {/* Typing indicator — show while sending and assistant hasn't started streaming yet */}
       {/* Also show for groups when content is just the label prefix like "**James**: " */}
-      {sending && (
-        messages.length === 0 ||
-        messages[messages.length - 1]?.role !== 'assistant' ||
-        !messages[messages.length - 1]?.content?.trim() ||
-        /^\*\*[^*]+\*\*:\s*$/.test(messages[messages.length - 1]?.content?.trim() ?? '')
-      ) && (
-        <div className="flex gap-2.5 justify-start">
-          <Avatar
-            name={sessionDisplayName(selectedSession)}
-            size="sm"
-            className="flex-shrink-0"
-          />
-          <div className="msg-agent rounded-2xl rounded-tl-sm px-4 py-3">
-            <div className="flex gap-1 items-center h-4">
-              <span className="w-1.5 h-1.5 bg-[var(--color-text-muted)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 bg-[var(--color-text-muted)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 bg-[var(--color-text-muted)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+      {sending &&
+        (messages.length === 0 ||
+          messages[messages.length - 1]?.role !== 'assistant' ||
+          !messages[messages.length - 1]?.content?.trim() ||
+          /^\*\*[^*]+\*\*:\s*$/.test(messages[messages.length - 1]?.content?.trim() ?? '')) && (
+          <div className="flex gap-2.5 justify-start">
+            <Avatar
+              name={sessionDisplayName(selectedSession)}
+              size="sm"
+              className="flex-shrink-0"
+            />
+            <div className="msg-agent rounded-2xl rounded-tl-sm px-4 py-3">
+              <div className="flex gap-1 items-center h-4">
+                <span
+                  className="w-1.5 h-1.5 bg-[var(--color-text-muted)] rounded-full animate-bounce"
+                  style={{ animationDelay: '0ms' }}
+                />
+                <span
+                  className="w-1.5 h-1.5 bg-[var(--color-text-muted)] rounded-full animate-bounce"
+                  style={{ animationDelay: '150ms' }}
+                />
+                <span
+                  className="w-1.5 h-1.5 bg-[var(--color-text-muted)] rounded-full animate-bounce"
+                  style={{ animationDelay: '300ms' }}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
       <div ref={messagesEndRef} />
     </div>
   )

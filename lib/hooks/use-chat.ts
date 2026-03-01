@@ -70,12 +70,14 @@ export function useChat(options: UseChatOptions): UseChatReturn {
       }
 
       const data = await response.json()
-      const history: ChatMessage[] = (data.messages || []).map((m: { role: string; content: string; timestamp?: string }, i: number) => ({
-        id: generateId(),
-        role: m.role,
-        content: m.content,
-        timestamp: m.timestamp || new Date().toISOString(),
-      }))
+      const history: ChatMessage[] = (data.messages || []).map(
+        (m: { role: string; content: string; timestamp?: string }, _i: number) => ({
+          id: generateId(),
+          role: m.role,
+          content: m.content,
+          timestamp: m.timestamp || new Date().toISOString(),
+        })
+      )
 
       setMessages(history)
     } catch (err) {
@@ -87,67 +89,69 @@ export function useChat(options: UseChatOptions): UseChatReturn {
     }
   }, [gatewayId, sessionKey, generateId, onError])
 
-  const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || isSending) return
+  const sendMessage = useCallback(
+    async (content: string) => {
+      if (!content.trim() || isSending) return
 
-    setIsSending(true)
-    setError(null)
+      setIsSending(true)
+      setError(null)
 
-    // Add user message immediately
-    const userMessage: ChatMessage = {
-      id: generateId(),
-      role: 'user',
-      content: content.trim(),
-      timestamp: new Date().toISOString(),
-    }
-    setMessages(prev => [...prev, userMessage])
-    onMessage?.(userMessage)
+      // Add user message immediately
+      const userMessage: ChatMessage = {
+        id: generateId(),
+        role: 'user',
+        content: content.trim(),
+        timestamp: new Date().toISOString(),
+      }
+      setMessages((prev) => [...prev, userMessage])
+      onMessage?.(userMessage)
 
-    try {
-      const response = await fetchWithCsrf('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gatewayId,
-          sessionKey,
-          message: content.trim(),
-        }),
-      })
+      try {
+        const response = await fetchWithCsrf('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gatewayId,
+            sessionKey,
+            message: content.trim(),
+          }),
+        })
 
-      if (!response.ok) {
+        if (!response.ok) {
+          const data = await response.json()
+          throw new Error(data.error || 'Failed to send message')
+        }
+
         const data = await response.json()
-        throw new Error(data.error || 'Failed to send message')
-      }
 
-      const data = await response.json()
-      
-      // Add assistant response
-      const assistantMessage: ChatMessage = {
-        id: generateId(),
-        role: 'assistant',
-        content: data.response || '(no response)',
-        timestamp: new Date().toISOString(),
-      }
-      setMessages(prev => [...prev, assistantMessage])
-      onMessage?.(assistantMessage)
+        // Add assistant response
+        const assistantMessage: ChatMessage = {
+          id: generateId(),
+          role: 'assistant',
+          content: data.response || '(no response)',
+          timestamp: new Date().toISOString(),
+        }
+        setMessages((prev) => [...prev, assistantMessage])
+        onMessage?.(assistantMessage)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to send message'
+        setError(message)
+        onError?.(message)
 
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to send message'
-      setError(message)
-      onError?.(message)
-      
-      // Add error message
-      const errorMessage: ChatMessage = {
-        id: generateId(),
-        role: 'system',
-        content: `Error: ${message}`,
-        timestamp: new Date().toISOString(),
+        // Add error message
+        const errorMessage: ChatMessage = {
+          id: generateId(),
+          role: 'system',
+          content: `Error: ${message}`,
+          timestamp: new Date().toISOString(),
+        }
+        setMessages((prev) => [...prev, errorMessage])
+      } finally {
+        setIsSending(false)
       }
-      setMessages(prev => [...prev, errorMessage])
-    } finally {
-      setIsSending(false)
-    }
-  }, [gatewayId, sessionKey, isSending, generateId, onMessage, onError])
+    },
+    [gatewayId, sessionKey, isSending, generateId, onMessage, onError]
+  )
 
   const clearMessages = useCallback(() => {
     setMessages([])
@@ -213,10 +217,12 @@ export function useGatewaySessions(gatewayId: string | null) {
         throw new Error('Failed to fetch sessions')
       }
       const data = await response.json()
-      const sessionList: ChatSession[] = (data.sessions || []).map((s: { key: string; kind?: string; displayName?: string; lastActive?: string }) => ({
-        ...s,
-        gateway: gatewayId,
-      }))
+      const sessionList: ChatSession[] = (data.sessions || []).map(
+        (s: { key: string; kind?: string; displayName?: string; lastActive?: string }) => ({
+          ...s,
+          gateway: gatewayId,
+        })
+      )
       setSessions(sessionList)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch sessions'
