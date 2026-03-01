@@ -152,7 +152,7 @@ export async function sendToSession(
   gatewayId: string,
   sessionKey: string,
   message: string,
-  history: Array<{ role: string; content: string }> = []
+  _history: Array<{ role: string; content: string }> = []
 ): Promise<{ success: boolean; response?: string; error?: string }> {
   const gateways = await getGateways()
   const gateway = gateways.find((g) => g.id === gatewayId)

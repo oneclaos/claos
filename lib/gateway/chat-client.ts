@@ -249,10 +249,18 @@ export async function getGatewayStatus(gatewayId: string) {
   return client.request('status')
 }
 
-// Cleanup on process exit
-process.on('beforeExit', () => {
+/**
+ * Close all gateway clients - for tests and graceful shutdown
+ */
+export function closeAllClients(): void {
   for (const [, client] of clients) {
     client.close()
   }
   clients.clear()
+  detectedTypes.clear()
+}
+
+// Cleanup on process exit
+process.on('beforeExit', () => {
+  closeAllClients()
 })

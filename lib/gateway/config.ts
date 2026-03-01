@@ -4,12 +4,7 @@
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
-import {
-  createCipheriv,
-  createDecipheriv,
-  randomBytes,
-  scryptSync,
-} from 'crypto'
+import { createCipheriv, createDecipheriv, randomBytes } from 'crypto'
 import type { GatewayConfig } from './types'
 
 const DATA_DIR = process.env.DATA_DIR || join(process.env.HOME || '/tmp', '.claos')
@@ -58,15 +53,6 @@ function saveConfig(config: AppConfig): void {
   })
 }
 
-/** Returns the 32-byte hex salt stored in config.json, creating it if absent. */
-function getOrCreateSalt(): string {
-  const config = loadConfig()
-  if (config.encSalt) return config.encSalt
-  const salt = randomBytes(32).toString('hex')
-  saveConfig({ ...config, encSalt: salt })
-  return salt
-}
-
 /**
  * Returns the 32-byte encryption master key.
  * Stored in config.json as `encKey` (generated once, never derived from hostname).
@@ -109,9 +95,7 @@ function decryptToken(storedToken: string): string {
   const key = getEncryptionKey()
   const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(ivHex, 'hex'))
   decipher.setAuthTag(Buffer.from(tagHex, 'hex'))
-  return (
-    decipher.update(Buffer.from(dataHex, 'hex')).toString('utf8') + decipher.final('utf8')
-  )
+  return decipher.update(Buffer.from(dataHex, 'hex')).toString('utf8') + decipher.final('utf8')
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
