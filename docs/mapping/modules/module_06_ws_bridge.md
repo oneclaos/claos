@@ -1,11 +1,13 @@
 # Module: WebSocket Bridge (`server/gateway-ws-proxy.js` + `server/index.js`)
 
 ## Rôle
+
 Custom Node.js server layer that intercepts HTTP upgrades for `/api/gateway/ws`, maintains a pool of upstream gateway WebSocket connections, and proxies frames bidirectionally between browser clients and AI agent gateways.
 
 ## Responsabilités principales
 
 ### `server/index.js`
+
 - Loads `.env.local` manually before starting Next.js (env must be available before any module)
 - Patches `http.createServer` to intercept the HTTP server instance and attach WS upgrade handler before Next.js registers its own
 - Creates a `WebSocketServer` (`noServer: true`) and registers `handleBrowserWs` for each connection
@@ -14,6 +16,7 @@ Custom Node.js server layer that intercepts HTTP upgrades for `/api/gateway/ws`,
 - Boots the Next.js standalone server (`require('.next/standalone/server.js')`)
 
 ### `server/gateway-ws-proxy.js` (`UpstreamConnection` class)
+
 - One `UpstreamConnection` per `gatewayId` — shared across all browser clients for that gateway
 - Implements the Clawdbot/OpenClaw WS auth handshake (`connect.challenge` → `connect` → `hello-ok`)
 - Sends keepalive pings every 20s
@@ -24,11 +27,13 @@ Custom Node.js server layer that intercepts HTTP upgrades for `/api/gateway/ws`,
 - **Validates session cookie** by directly reading `DATA_DIR/sessions.json` (bypasses `lib/auth.ts`)
 
 ## Dépendances internes
+
 - **None** — plain JS file cannot import TypeScript modules
 - Reads `process.env.GATEWAYS` directly (mirrors `parseGatewaysConfig()`)
 - Reads filesystem `sessions.json` directly (mirrors `lib/auth.ts` session validation)
 
 ## Dépendances externes
+
 - `ws` (node_modules)
 - `crypto` (Node.js)
 - `fs` (Node.js)
@@ -36,16 +41,19 @@ Custom Node.js server layer that intercepts HTTP upgrades for `/api/gateway/ws`,
 - `http` (Node.js — `http.createServer` monkey-patching)
 
 ## Ce qui dépend de lui
+
 - `hooks/useGatewayWs.ts` — browser WebSocket client connects to `/api/gateway/ws`
 - `hooks/useChatWs.ts` — uses `useGatewayWs` for streaming chat
 
 ## Flux de données entrants
+
 - Browser WS connections (`wss://host/api/gateway/ws?gatewayId=X`)
 - Session cookie from HTTP request headers
 - `GATEWAYS` env variable for upstream gateway config
 - Upstream gateway WS frames (`agent` events, `res` frames)
 
 ## Flux de données sortants
+
 - Upstream `req` frames (browser → gateway)
 - Gateway events broadcast to browser clients (gateway → browser, N:1 fan-out)
 - `__bridge__` events: `gateway_connected`, `gateway_disconnected`, `gateway_connecting`, `error`
@@ -57,7 +65,7 @@ Custom Node.js server layer that intercepts HTTP upgrades for `/api/gateway/ws`,
    - The `DATA_DIR` path (`$HOME/.claos`)
    - The session file path (`sessions.json`)
    - The session validation logic (`expiresAt < Date.now()`)
-   If any of these change in `lib/auth.ts`, the proxy silently accepts or rejects sessions incorrectly. **Redis sessions are NOT supported** — the proxy always reads the file store.
+     If any of these change in `lib/auth.ts`, the proxy silently accepts or rejects sessions incorrectly. **Redis sessions are NOT supported** — the proxy always reads the file store.
 
 2. **`upstreamPool` is module-level global** — all browser connections share the same pool per process. Under PM2 cluster mode with multiple workers, each worker has its own pool, so the same gateway has N upstream connections (one per worker). This multiplies gateway load by the worker count.
 
@@ -69,7 +77,8 @@ Custom Node.js server layer that intercepts HTTP upgrades for `/api/gateway/ws`,
 
 6. **GATEWAYS env parsed in both `gateway-ws-proxy.js` and `lib/gateway/chat-client.ts`** — separate parsing, potential for divergence.
 
-## Suggestions d'amélioration architecturale
+## Architecture Improvements
+
 - **Validate sessions via an internal HTTP call** — add `GET /api/auth/validate?token=X` (not publicly accessible, bound to 127.0.0.1) that the proxy can call. This makes the proxy share the real auth logic regardless of storage backend.
 - **Replace monkey-patching** with a proper custom Next.js server entry point that constructs the HTTP server first and passes it to Next.js, eliminating the race/fragility.
 - **Add a mutex for `getUpstreamConnection`** — e.g., a `Map<string, Promise>` of in-flight connection attempts to prevent duplicate upstream connections.

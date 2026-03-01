@@ -1,9 +1,11 @@
 # Module: Gateway Library (`lib/gateway/`)
 
 ## Rôle
+
 Core server-side library that manages authenticated WebSocket connections to AI agent gateways (Clawdbot and OpenClaw protocols), with auto-discovery, circuit breaking, and a connection pool.
 
 ## Responsabilités principales
+
 - **WS client** (`ws-client.ts`): Implements the Clawdbot/OpenClaw WS protocol v3 — challenge/connect handshake, streaming agent events, request/response correlation, keepalive pings, exponential reconnect
 - **Connection pool** (`chat-client.ts`): Maintains one `GatewayWsClient` per gatewayId; auto-detects protocol type; handles reconnect lifecycle and pool cleanup
 - **Registry** (`registry.ts`): Single source of truth for all gateways — merges static config (`GATEWAYS` env), discovered gateways, and custom gateways; 90s TTL cache with background refresh
@@ -17,10 +19,12 @@ Core server-side library that manages authenticated WebSocket connections to AI 
 - **Config** (`config.ts`): Custom gateways persistence (`DATA_DIR/gateways.json`) — add/remove without restart
 
 ## Dépendances internes
+
 - `lib/gateway/types.ts` — shared types and constants (thresholds, TTLs)
 - `lib/gateway/errors.ts` — all modules import for structured error handling
 
 ## Dépendances externes
+
 - `ws` v8 — WebSocket client (Node.js server-side only)
 - `crypto` (Node.js built-in) — `randomUUID`, `randomBytes`
 - `events` (Node.js built-in) — `EventEmitter` base for `GatewayWsClient`
@@ -28,6 +32,7 @@ Core server-side library that manages authenticated WebSocket connections to AI 
 - `fetch` (Node.js built-in) — discovery port probing, HTTP client
 
 ## Ce qui dépend de lui
+
 - `app/api/chat/stream/route.ts` — `getGatewayClient`
 - `app/api/sessions/*` — `listAllSessions`, `listSessions`, `getSessionHistory`, `sendToSession`, `spawnSession`
 - `app/api/gateways/route.ts` — `getAllGateways`, `getCachedGateways`
@@ -37,12 +42,14 @@ Core server-side library that manages authenticated WebSocket connections to AI 
 - `server/gateway-ws-proxy.js` — reads GATEWAYS env (does NOT import this module)
 
 ## Flux de données entrants
+
 - `GATEWAYS` environment variable (JSON array of GatewayConfig)
 - HTTP responses from gateway ports (discovery probing)
 - WebSocket frames from gateways (events, responses)
 - Auth tokens from config files (auto-pair)
 
 ## Flux de données sortants
+
 - `GatewayWsClient` instances in the connection pool
 - Session lists, message history, send confirmations
 - Gateway configs (to registry consumers)
@@ -62,7 +69,8 @@ Core server-side library that manages authenticated WebSocket connections to AI 
 
 6. **Protocol auto-detection tries `clawdbot` first, then falls back to `openclaw`** — this means every new `openclaw`-only gateway incurs one failed connection attempt before succeeding. Detected types are cached in `detectedTypes` Map (process lifetime).
 
-## Suggestions d'amélioration architecturale
+## Architecture Improvements
+
 - **Merge `parseGatewaysConfig()`** into a single location (e.g., `config.ts`) imported by both modules.
 - **Extract the circular dependency** by having `chat-client.ts` accept a `GatewayConfig` parameter directly instead of looking it up from the registry. The caller (API route) already has the config.
 - **Add a discovery timeout per batch** using `Promise.allSettled` + `AbortController` with a 5s total cap to prevent slow VPS port scans from delaying gateway list responses.

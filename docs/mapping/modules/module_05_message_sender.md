@@ -1,9 +1,11 @@
 # Module: useMessageSender (`hooks/useMessageSender.ts`)
 
 ## Rôle
+
 The central orchestration hook for all message sending — manages input state, attachment processing, message queuing, WS/SSE dual-path streaming, multi-gateway group brainstorming, and post-send notifications.
 
 ## Responsabilités principales
+
 - **Input state**: `input` text and `pendingAttachments` array
 - **Image compression**: client-side JPEG compression to stay within 380KB WS frame limit (canvas-based, tries quality 0.85→0.7→0.55→0.4)
 - **File reading**: FileReader for image (data URL), text (raw text), audio (pass-through) attachments
@@ -16,6 +18,7 @@ The central orchestration hook for all message sending — manages input state, 
 - **Message cache**: updates ChatContext messages AND localStorage on every delta (streaming update)
 
 ## Dépendances internes
+
 - `context/chat-context.tsx` — sessions, gateways, messages, cache, localStorage helpers
 - `context/tab-context.tsx` — tab list and `markTabUnread`
 - `context/notification-context.tsx` — `notificationRef.current` (imperative notification trigger)
@@ -25,6 +28,7 @@ The central orchestration hook for all message sending — manages input state, 
 - `hooks/useChatWs.ts` — streaming chat over browser WebSocket
 
 ## Dépendances externes
+
 - `react` (useState, useCallback, useRef)
 - Browser `fetch` API (SSE streaming)
 - Browser `FileReader` API
@@ -32,10 +36,12 @@ The central orchestration hook for all message sending — manages input state, 
 - Browser `AbortSignal.timeout` (SSE request timeout)
 
 ## Ce qui dépend de lui
+
 - `components/chat/chat-input.tsx` — `input`, `setInput`, `sendMessage`, `handleFileSelect`, `pendingAttachments`, `sending`
 - `components/chat/ChatSection.tsx` (indirectly through chat-input)
 
 ## Flux de données entrants
+
 - User text input + selected files
 - `selectedSession` from ChatContext
 - `gateways` list from ChatContext
@@ -43,6 +49,7 @@ The central orchestration hook for all message sending — manages input state, 
 - SSE events from `/api/chat/stream` (SSE path)
 
 ## Flux de données sortants
+
 - User + assistant messages appended to ChatContext + localStorage
 - Tab unread badge updates
 - Browser Notification API calls
@@ -64,7 +71,8 @@ The central orchestration hook for all message sending — manages input state, 
 
 6. **Image compression uses `document.createElement('canvas')`** — this breaks in server-side contexts. The hook is `'use client'` so this is safe today, but the canvas usage is not guarded by `typeof document !== 'undefined'`.
 
-## Suggestions d'amélioration architecturale
+## Architecture Improvements
+
 - **Split into smaller hooks**: `useMessageInput` (text + attachments + compression), `useSendStream` (SSE/WS stream management), `useMessageQueue` (per-session queue), `useGroupOrchestrator` (multi-agent rounds).
 - **Fix stale closure risk**: use `useReducer` for message updates instead of nested `useCallback` with captures.
 - **Add explicit dependency tracking**: document which state each `addMessages` closure captures and guard against cross-session writes.

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Interface web pour gérer les conversations avec **tous les agents Clawdbot** sur **plusieurs gateways**.
+Web interface for managing conversations with **all Clawdbot agents** across **multiple gateways**.
 
 ```
                                             ┌─────────────────────────────────────────┐

@@ -1,9 +1,11 @@
 # Module: TabContext (`context/tab-context.tsx`)
 
 ## Rôle
+
 React context managing the multi-tab navigation system — tab lifecycle (open, close, activate, navigate), localStorage persistence with debounce, unread badge tracking, keyboard navigation, and closed-tab restoration.
 
 ## Responsabilités principales
+
 - **Tab CRUD**: `openTab`, `closeTab`, `activateTab`, `navigateActiveTab`
 - **Persistence**: debounced (200ms) `localStorage.setItem(TAB_STORAGE_KEY, ...)` on every tabs/activeTabId change; reads on mount (SSR-safe)
 - **Schema validation**: `TabStorageSchema.safeParse()` on localStorage read — corrupt state is discarded gracefully
@@ -14,13 +16,16 @@ React context managing the multi-tab navigation system — tab lifecycle (open, 
 - **Hydration**: builds state from localStorage on first mount (client-side only), shows empty state during SSR
 
 ## Dépendances internes
+
 - `lib/tab-types.ts` — `Tab`, `TabView`, `TabStorage`, `createTab`, `TabStorageSchema`, constants
 
 ## Dépendances externes
+
 - `react` (createContext, useCallback, useContext, useEffect, useRef, useState)
 - Browser `localStorage` + `crypto.randomUUID()`
 
 ## Ce qui dépend de lui
+
 - `app/(dashboard)/page.tsx` — renders `TabInstance` per tab
 - `components/tabs/TabBar.tsx` — renders the tab bar
 - `components/tabs/TabItem.tsx` — individual tab UI
@@ -30,12 +35,14 @@ React context managing the multi-tab navigation system — tab lifecycle (open, 
 - `hooks/useMessageSender.ts` — reads `tabs`, `markTabUnread` for notification badges
 
 ## Flux de données entrants
+
 - User interactions (click to open/close/switch tabs)
 - Keyboard events (via `useTabKeyboard`)
 - Notification triggers from `useMessageSender` (unread badge updates)
 - localStorage on mount (tab state restoration)
 
 ## Flux de données sortants
+
 - Current `tabs` array and `activeTab` to all consumers
 - localStorage write on every change (debounced 200ms)
 - `isActive`, `hasUnread`, `unreadCount` on each `Tab` object
@@ -50,7 +57,8 @@ React context managing the multi-tab navigation system — tab lifecycle (open, 
 
 4. **`activateTab` clears unread in the same setter** — combining tab activation with unread clearing makes it difficult to track "when did the user first see this message" precisely.
 
-## Suggestions d'amélioration architecturale
+## Architecture Improvements
+
 - **Add migration path** from v1 → current storage format; check the persisted `version` field and migrate gracefully rather than falling back to default.
 - **Remove `setTabsWithActive`** if it's truly unused.
 - **Add tab deduplication** for single-section tabs (e.g., only one terminal tab, one files tab).

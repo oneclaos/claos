@@ -1,11 +1,13 @@
 # Module: Terminal (`lib/terminal/pty-manager.ts` + `app/api/terminal/` + `components/terminal/terminal.tsx`)
 
 ## Rôle
+
 Provides an embedded interactive shell in the dashboard by creating real PTY processes on the host, streaming output via SSE, and accepting input via POST — with security constraints (env whitelist, session cap, idle cleanup).
 
 ## Responsabilités principales
 
 ### `lib/terminal/pty-manager.ts` (PTYManager singleton)
+
 - `createSession(id)`: spawns `/bin/bash` via `node-pty` with a whitelisted environment (only 13 safe env vars — explicitly excludes GATEWAY_TOKEN, CSRF_SECRET, CLAOS_PASSWORD_HASH, etc.)
 - `write(id, data)`: forwards input data to PTY
 - `resize(id, cols, rows)`: adjusts PTY dimensions
@@ -15,6 +17,7 @@ Provides an embedded interactive shell in the dashboard by creating real PTY pro
 - **Session cap**: max 20 simultaneous sessions; rejects (not silently kills) when exceeded
 
 ### `app/api/terminal/` routes
+
 - `POST /api/terminal` — creates session, returns `{ sessionId }`
 - `GET /api/terminal/[id]/stream` — SSE stream of PTY output
 - `POST /api/terminal/[id]/write` — sends input to PTY
@@ -23,6 +26,7 @@ Provides an embedded interactive shell in the dashboard by creating real PTY pro
 - All routes validate session cookie; write/resize/delete routes validate CSRF
 
 ### `context/terminal-context.tsx`
+
 - Manages `TerminalWindow` objects (UI state: minimized, dead flag)
 - `createTerminal()`: calls `POST /api/terminal`, adds window
 - `closeTerminal(windowId, sessionId)`: calls `DELETE /api/terminal`, removes window
@@ -30,17 +34,20 @@ Provides an embedded interactive shell in the dashboard by creating real PTY pro
 - `toggleMinimize(windowId)`: show/hide the xterm.js panel
 
 ### `components/terminal/terminal.tsx`
+
 - Renders `xterm.js` Terminal with FitAddon and WebLinksAddon
 - Connects to SSE stream for PTY output
 - Sends keystrokes to `/api/terminal/[id]/write`
 - Handles resize events via ResizeObserver
 
 ## Dépendances internes
+
 - `lib/auth.ts` — session validation in all terminal API routes
 - `lib/csrf-client.ts` — CSRF token for write/delete operations in TerminalContext
 - `lib/constants.ts` — `RATE_LIMITS.TERMINAL_MAX_SESSIONS`
 
 ## Dépendances externes
+
 - `node-pty` ^1.1.0 — native PTY spawning
 - `xterm` ^5.3.0 — browser terminal emulator
 - `xterm-addon-fit` — responsive resize
@@ -48,15 +55,18 @@ Provides an embedded interactive shell in the dashboard by creating real PTY pro
 - `events` (Node.js) — `EventEmitter` for PTY output relay
 
 ## Ce qui dépend de lui
+
 - `app/(dashboard)/terminal/page.tsx` — renders `TerminalView`
 - `components/views/TerminalView.tsx` — wraps `terminal.tsx` + TerminalContext
 
 ## Flux de données entrants
+
 - Keyboard input from browser → `POST /api/terminal/[id]/write`
 - Resize events (ResizeObserver) → `POST /api/terminal/[id]/resize`
 - PTY process output → EventEmitter `data` events → SSE stream
 
 ## Flux de données sortants
+
 - PTY output as SSE events to browser
 - `TerminalWindow` state to TerminalContext consumers
 
@@ -72,7 +82,8 @@ Provides an embedded interactive shell in the dashboard by creating real PTY pro
 
 5. **TerminalContext `creating` flag is a single boolean** — if two calls to `createTerminal()` race (e.g., double-click), both can proceed because the `creating` flag is set and cleared in the same async chain without a lock.
 
-## Suggestions d'amélioration architecturale
+## Architecture Improvements
+
 - **Sandbox the PTY** — run the shell in a restricted user or Docker container to prevent privilege escalation.
 - **Add SSE stream timeout** — automatically close the SSE stream and send an `exit` event after 5 minutes of no activity.
 - **Deduplicate PTY sessions** — if the user already has an active session with the same `sessionId`, return the existing one instead of creating a new SSE stream.

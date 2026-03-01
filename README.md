@@ -15,6 +15,8 @@ Claos is a dashboard for managing distributed AI openclaw agent infrastructure l
 
 **Requires:** An openclaw gateway instance.
 
+![Claos Dashboard](docs/images/dashboard-preview.jpg)
+
 ---
 
 ## ✨ Features
@@ -29,7 +31,7 @@ Claos is a dashboard for managing distributed AI openclaw agent infrastructure l
 
 ### 🎛️ Agent Management
 
-- **Auto-discovery** of local gateways (ports 18750-18850)
+- **Auto-discovery** of local gateways (ports 18700-18800)
 - **Manual gateway configuration** for remote VPS
 - **Live status indicators** (online/offline)
 - **Session management** - Create, rename, delete conversations
@@ -69,16 +71,15 @@ Claos is a dashboard for managing distributed AI openclaw agent infrastructure l
 
 ## ⌨️ Keyboard Shortcuts
 
-| Shortcut           | Action                |
-| ------------------ | --------------------- |
-| `Ctrl + Enter`     | Send message          |
-| `Ctrl + N`         | New conversation      |
-| `Ctrl + G`         | New group chat        |
-| `Ctrl + K`         | Search sessions       |
-| `Ctrl + /`         | Focus chat input      |
-| `Escape`           | Close modals/panels   |
-| `↑` / `↓`          | Navigate session list |
-| `Ctrl + Shift + T` | New terminal          |
+| Shortcut           | Action                     |
+| ------------------ | -------------------------- |
+| `Alt/Option + T`   | New tab                    |
+| `Alt/Option + W`   | Close current tab          |
+| `Alt/Option + ←/→` | Navigate between tabs      |
+| `Alt/Option + A`   | Speech-to-text (dictation) |
+| `Alt/Option + 1-9` | Jump to tab by number      |
+| `Enter`            | Send message               |
+| `Shift + Enter`    | New line in message        |
 
 ---
 
@@ -128,8 +129,8 @@ DATA_DIR=/path/to/data          # Persistent storage directory
 GATEWAYS='[{"id":"main","name":"Main","url":"ws://127.0.0.1:18789","token":"your-token"}]'
 
 # Optional
-GATEWAY_PORT_START=18750        # Auto-discovery port range start
-GATEWAY_PORT_END=18850          # Auto-discovery port range end
+GATEWAY_PORT_START=18700        # Auto-discovery port range start
+GATEWAY_PORT_END=18800          # Auto-discovery port range end
 STRICT_SESSION_BINDING=false    # Bind sessions to IP+UserAgent
 REDIS_URL=                      # Redis for session storage (optional)
 ```

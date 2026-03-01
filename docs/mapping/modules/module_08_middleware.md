@@ -1,9 +1,11 @@
 # Module: Middleware (`middleware.ts`)
 
 ## Rôle
+
 Edge Runtime request interceptor that enforces authentication, CSRF pre-validation, security headers (CSP with nonce, HSTS, X-Frame-Options, etc.), HTTPS redirect, and route-based auth exemptions for every request.
 
 ## Responsabilités principales
+
 - **Auth enforcement**: checks `claos_session` cookie; redirects to `/login` for pages, returns 401 for API routes
 - **Session format pre-validation**: 64-char hex format check; deletes malformed session cookie
 - **CSRF pre-validation**: for POST/PUT/DELETE/PATCH on protected routes, checks `x-csrf-token` header exists and matches `\w+\.\w+` format (format-only check, NOT HMAC verification)
@@ -15,19 +17,24 @@ Edge Runtime request interceptor that enforces authentication, CSRF pre-validati
 - **Static file exclusion**: matcher excludes `_next/static`, `_next/image`, image files, `favicon.ico`
 
 ## Dépendances internes
+
 - None (Edge Runtime cannot import Node.js modules)
 
 ## Dépendances externes
+
 - `next/server` — `NextRequest`, `NextResponse`
 - `globalThis.crypto` — Web Crypto API (Edge-safe nonce generation)
 
 ## Ce qui dépend de lui
+
 - Every incoming HTTP request to the app (the middleware runs before all routes)
 
 ## Flux de données entrants
+
 - HTTP request (URL, method, cookies, headers)
 
 ## Flux de données sortants
+
 - Modified request (with `x-nonce` header) + security response headers
 - 401/403 JSON responses for unauthorized/CSRF-failed API requests
 - 302 redirects for unauthenticated page requests or legacy URLs
@@ -49,7 +56,8 @@ Edge Runtime request interceptor that enforces authentication, CSRF pre-validati
 
 5. **Edge Runtime limitation** — because middleware runs in the Edge Runtime, it cannot do crypto operations using Node.js `crypto` (uses Web Crypto instead). This means it cannot fully validate CSRF tokens (which require `createHash` from `node:crypto`). This is an inherent architectural constraint of using Edge middleware for auth.
 
-## Suggestions d'amélioration architecturale
+## Architecture Improvements
+
 - **Move full CSRF validation to a reusable helper** — create `lib/csrf-server.ts` (non-Edge) that both middleware and route handlers can use. Middleware can't do it, but standardizing the route-level validation prevents inconsistencies.
 - **Add `/api/chat/stream` to `csrfProtectedRoutes`** even if the route validates CSRF itself — ensures the middleware provides consistent pre-screening.
 - **Use route groups for auth** — Next.js App Router supports protected route groups that can apply auth at a layout level, which is more declarative than the middleware list.
